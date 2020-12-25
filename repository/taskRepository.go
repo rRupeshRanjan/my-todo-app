@@ -9,19 +9,19 @@ import (
 )
 
 var (
-	database *sql.DB
-	sqlDriver string
+	database     *sql.DB
+	sqlDriver    string
 	databaseName string
-	logger *zap.Logger
+	logger       *zap.Logger
 )
 
 const (
 	getByIdQuery = "SELECT * FROM tasks WHERE id=?"
-	getAllQuery = "SELECT * FROM tasks"
-	createQuery = "INSERT INTO tasks (title, description, addedOn, dueBy, status) VALUES (?,?,?,?,?)"
-	updateQuery = "UPDATE tasks SET title=?, description=?, addedOn=?, dueBy=?, status=? WHERE id=?"
-	deleteQuery = "DELETE FROM tasks WHERE id=?"
-	initDbQuery = `CREATE TABLE IF NOT EXISTS tasks (
+	getAllQuery  = "SELECT * FROM tasks"
+	createQuery  = "INSERT INTO tasks (title, description, addedOn, dueBy, status) VALUES (?,?,?,?,?)"
+	updateQuery  = "UPDATE tasks SET title=?, description=?, addedOn=?, dueBy=?, status=? WHERE id=?"
+	deleteQuery  = "DELETE FROM tasks WHERE id=?"
+	initDbQuery  = `CREATE TABLE IF NOT EXISTS tasks (
 						id INTEGER PRIMARY KEY, 
 						title TEXT, 
 						description TEXT, 
@@ -104,7 +104,6 @@ func DeleteTask(id string) (int64, error) {
 	}
 	return 0, err
 }
-
 
 // TODO:: Implement this
 func SearchTasks(params map[string]string) ([]domain.Task, error) {

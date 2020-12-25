@@ -3,3 +3,11 @@
 {"level":"info","ts":1608893241.9002533,"msg":"No. of tasks fetched: 0"}
 {"level":"info","ts":1608893246.52414,"msg":"No task found with id: 1"}
 {"level":"info","ts":1608893314.625517,"msg":"Created task with id: 1"}
+{"level":"info","ts":1608894678.4757025,"msg":"No. of tasks fetched: 1"}
+{"level":"info","ts":1608894944.4136994,"msg":"No. of tasks fetched: 1"}
+{"level":"info","ts":1608894944.873793,"msg":"No. of tasks fetched: 1"}
+[16:57:26] GET /task/1 - 200 0s
+[16:57:36] GET /task/1 - 200 1.1183ms
+[16:57:36] GET /task/1 - 200 1.0402ms
+{"level":"info","ts":1608895666.0114484,"msg":"No. of tasks fetched: 1"}
+[16:57:45] GET /tasks - 200 996.3µs

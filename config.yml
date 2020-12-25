@@ -3,3 +3,4 @@ sql.database.name: "todo_app.sql"
 
 app.server.port: "8080"
 app.log.location: "application.log"
+fiber.log.format: "[${time}] ${method} ${path} - ${status} ${latency}\n"

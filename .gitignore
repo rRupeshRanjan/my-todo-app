@@ -1,4 +1,5 @@
 *.mod
 *.sum
 *.sql
+*.log
 .idea/

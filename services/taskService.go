@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 	"my-todo-app/config"
 	"my-todo-app/domain"
 	"my-todo-app/repository"
+	"net/http"
 	"strconv"
 )
 
@@ -46,97 +48,76 @@ func (t TaskRepository) searchTasks(params map[string]string) ([]domain.Task, er
 }
 
 var (
-	taskRepository = TaskRepository{}
-	logger         = config.AppLogger
+	taskRepository TaskRepositoryInterface
+	logger         *zap.Logger
 )
 
-func GetTaskByIdHandler(c *fiber.Ctx) error {
-	setApplicationJsonHeader(c)
+func init() {
+	taskRepository = TaskRepository{}
+	logger = config.AppLogger
+}
 
+func GetTaskByIdHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
 	task, err := taskRepository.getTaskById(id)
 	if err == nil {
 		if len(task) == 0 {
 			logger.Info(fmt.Sprintf("No task found with id: %s", id))
-			return c.Status(404).Send(nil)
-		} else {
-			var body []byte
-			body, err = json.Marshal(task[0])
-			if err == nil {
-				return c.Status(200).Send(body)
-			}
+			return c.SendStatus(http.StatusNotFound)
 		}
+		return c.JSON(task[0])
 	}
 
 	logger.Error(fmt.Sprintf("Error fetching task with id=%s: %s", id, err))
-	return c.Status(500).Send(nil)
+	return c.SendStatus(http.StatusInternalServerError)
 }
 
 func GetAllTasksHandler(c *fiber.Ctx) error {
-	setApplicationJsonHeader(c)
-
 	tasks, err := taskRepository.getAllTasks()
 	if err == nil {
-		var body []byte
-		body, err = json.Marshal(tasks)
-		if err == nil {
-			logger.Info(fmt.Sprintf("No. of tasks fetched: %d", len(tasks)))
-			return c.Status(200).Send(body)
-		}
+		logger.Info(fmt.Sprintf("No. of tasks fetched: %d", len(tasks)))
+		return c.JSON(tasks)
 	}
 
 	logger.Error(fmt.Sprintf("Error fetching all tasks: %s", err))
-	return c.Status(500).Send(nil)
+	return c.SendStatus(http.StatusInternalServerError)
 }
 
 func CreateTaskHandler(c *fiber.Ctx) error {
-	c.Set("content-type", "application/json")
-
 	var task domain.Task
 	err := json.Unmarshal(c.Body(), &task)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error converting json to valid task body: %s", err))
-		return c.Status(400).Send(nil)
+		return c.SendStatus(http.StatusBadRequest)
 	}
 
 	createdId, err := taskRepository.createTask(task)
 	if err == nil {
-		var body []byte
 		task.Id = createdId
-		body, err = json.Marshal(task)
-		if err == nil {
-			logger.Info(fmt.Sprintf("Created task with id: %d", createdId))
-			return c.Status(200).Send(body)
-		}
+		return c.JSON(task)
 	}
 
 	logger.Error(fmt.Sprintf("Error creating task: %s", err))
-	return c.Status(500).Send(nil)
+	return c.SendStatus(http.StatusInternalServerError)
 }
 
 func UpdateTaskByIdHandler(c *fiber.Ctx) error {
-	setApplicationJsonHeader(c)
 	id := c.Params("id")
 
 	var task domain.Task
 	err := json.Unmarshal(c.Body(), &task)
 	if err != nil || strconv.FormatInt(task.Id, 10) != id {
 		logger.Error("Bad data passed for update, or id in body is different from id in URL")
-		return c.Status(400).Send(nil)
+		return c.SendStatus(http.StatusBadRequest)
 	}
 
 	err = taskRepository.updateTask(task, id)
 	if err == nil {
-		var body []byte
-		body, err = json.Marshal(task)
-		if err == nil {
-			logger.Info(fmt.Sprintf("Updated task with id: %d", id))
-			return c.Status(200).Send(body)
-		}
+		return c.JSON(task)
 	}
 
 	logger.Error(fmt.Sprintf("Error while updating task with id=%s: %s", id, err))
-	return c.Status(500).Send(nil)
+	return c.SendStatus(http.StatusInternalServerError)
 }
 
 func DeleteTaskByIdHandler(c *fiber.Ctx) error {
@@ -145,26 +126,22 @@ func DeleteTaskByIdHandler(c *fiber.Ctx) error {
 	if err == nil {
 		if rowsAffected == 0 {
 			logger.Info(fmt.Sprintf("No task found with id: %s for deletion", id))
-			return c.Status(404).Send(nil)
+			return c.SendStatus(http.StatusNotFound)
 		}
 		logger.Info(fmt.Sprintf("Deleted task with id: %s", id))
-		return c.Status(204).Send(nil)
+		return c.SendStatus(http.StatusNoContent)
 	}
 
 	logger.Error(fmt.Sprintf("Error deleting task with id=%s : %s", id, err))
-	return c.Status(500).Send(nil)
+	return c.SendStatus(http.StatusInternalServerError)
 }
 
 // TODO: Implement this
 func SearchHandler(c *fiber.Ctx) error {
-	return c.Status(501).SendString("Not yet implemented")
+	return c.Status(http.StatusNotImplemented).SendString("Not yet implemented")
 }
 
 // TODO: Implement this
 func UpdateBulkTaskHandler(c *fiber.Ctx) error {
-	return c.Status(501).SendString("Not yet implemented")
-}
-
-func setApplicationJsonHeader(c *fiber.Ctx) {
-	c.Set("content-type", "application/json")
+	return c.Status(http.StatusNotImplemented).SendString("Not yet implemented")
 }

@@ -2,4 +2,5 @@
 *.sum
 *.sql
 *.log
+*.exe
 .idea/

@@ -1,5 +1,5 @@
-sql.driver: "sqlite3"
-sql.database.name: "todo_app.sql"
+sql.driver: "mysql"
+sql.database.name: "root:password@/todo_app"
 
 app.server.port: "8080"
 app.log.location: "application.log"

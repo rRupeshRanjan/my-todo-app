@@ -2,7 +2,7 @@ package repository
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 	"my-todo-app/config"
 	"my-todo-app/domain"
@@ -22,12 +22,12 @@ const (
 	updateQuery  = "UPDATE tasks SET title=?, description=?, addedOn=?, dueBy=?, status=? WHERE id=?"
 	deleteQuery  = "DELETE FROM tasks WHERE id=?"
 	initDbQuery  = `CREATE TABLE IF NOT EXISTS tasks (
-						id INTEGER PRIMARY KEY, 
-						title TEXT, 
-						description TEXT, 
-						addedOn INTEGER, 
-						dueBy INTEGER, 
-						status TEXT);`
+						id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT, 
+						title TEXT NOT NULL, 
+						description TEXT NOT NULL, 
+						addedOn INTEGER NOT NULL, 
+						dueBy INTEGER NOT NULL, 
+						status TEXT NOT NULL);`
 )
 
 func init() {
@@ -38,8 +38,13 @@ func init() {
 }
 
 func setupDatabase() {
-	database, _ = sql.Open(sqlDriver, databaseName)
-	_, err := database.Exec(initDbQuery)
+	db, err := sql.Open(sqlDriver, databaseName)
+	if err != nil {
+		panic(err)
+	}
+
+	database = db
+	_, err = database.Exec(initDbQuery)
 	if err != nil {
 		logger.Panic("Failure while initializing database, {}" + err.Error())
 	}

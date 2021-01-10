@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 	"my-todo-app/config"
@@ -9,7 +10,7 @@ import (
 )
 
 var (
-	database     *sql.DB
+	db           *sql.DB
 	sqlDriver    string
 	databaseName string
 	logger       *zap.Logger
@@ -34,24 +35,41 @@ func init() {
 	sqlDriver = config.SqlDriver
 	databaseName = config.DatabaseName
 	logger = config.AppLogger
-	setupDatabase()
+
+	connectDatabase()
+	initializeTable()
 }
 
-func setupDatabase() {
-	db, err := sql.Open(sqlDriver, databaseName)
+func connectDatabase() {
+	database, err := sql.Open(sqlDriver, databaseName)
 	if err != nil {
 		panic(err)
 	}
 
-	database = db
-	_, err = database.Exec(initDbQuery)
+	db = database
+}
+
+func initializeTable() {
+	tx, err := db.Begin()
+	if err != nil {
+		return
+	}
+	defer completeTransaction(err, tx)
+
+	_, err = db.Exec(initDbQuery)
 	if err != nil {
 		logger.Panic("Failure while initializing database, {}" + err.Error())
 	}
 }
 
 func GetTaskById(id string) ([]domain.Task, error) {
-	rows, err := database.Query(getByIdQuery, id)
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer completeTransaction(err, tx)
+
+	rows, err := tx.Query(getByIdQuery, id)
 	var tasks []domain.Task
 
 	for err == nil && rows.Next() {
@@ -65,7 +83,13 @@ func GetTaskById(id string) ([]domain.Task, error) {
 }
 
 func GetAllTasks() ([]domain.Task, error) {
-	rows, err := database.Query(getAllQuery)
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer completeTransaction(err, tx)
+
+	rows, err := tx.Query(getAllQuery)
 	var tasks []domain.Task
 
 	for err == nil && rows.Next() {
@@ -79,38 +103,59 @@ func GetAllTasks() ([]domain.Task, error) {
 }
 
 func CreateTask(task domain.Task) (int64, error) {
-	statement, err := database.Prepare(createQuery)
-	if err == nil {
-		result, execError := statement.Exec(task.Title, task.Description, task.AddedOn, task.DueBy, task.Status)
-		err = execError
-		if err == nil && result != nil {
-			return result.LastInsertId()
-		}
+	tx, err := db.Begin()
+	if err != nil {
+		return -1, err
+	}
+	defer completeTransaction(err, tx)
+
+	result, err := tx.Exec(createQuery, task.Title, task.Description, task.AddedOn, task.DueBy, task.Status)
+	if err == nil && result != nil {
+		return result.LastInsertId()
 	}
 	return -1, err
 }
 
 func UpdateTask(task domain.Task, id string) error {
-	statement, err := database.Prepare(updateQuery)
-	if err == nil {
-		_, err = statement.Exec(task.Title, task.Description, task.AddedOn, task.DueBy, task.Status, id)
+	tx, err := db.Begin()
+	if err != nil {
+		return err
 	}
+	defer completeTransaction(err, tx)
+
+	_, err = tx.Exec(updateQuery, task.Title, task.Description, task.AddedOn, task.DueBy, task.Status, id)
 	return err
 }
 
 func DeleteTask(id string) (int64, error) {
-	statement, err := database.Prepare(deleteQuery)
-	if err == nil {
-		result, ExecError := statement.Exec(id)
-		err = ExecError
-		if err == nil && result != nil {
-			return result.RowsAffected()
-		}
+	tx, err := db.Begin()
+	if err != nil {
+		return 0, err
 	}
+	defer completeTransaction(err, tx)
+
+	result, err := tx.Exec(deleteQuery, id)
+	if err == nil && result != nil {
+		return result.RowsAffected()
+	}
+
 	return 0, err
 }
 
 // TODO:: Implement this
 func SearchTasks(params map[string]string) ([]domain.Task, error) {
 	return []domain.Task{}, nil
+}
+
+func completeTransaction(err error, tx *sql.Tx) {
+	switch err {
+	case nil:
+		err = tx.Commit()
+	default:
+		err = tx.Rollback()
+	}
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Error completing the transaction: %s", err))
+	}
 }

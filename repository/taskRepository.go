@@ -36,17 +36,18 @@ func init() {
 	databaseName = config.DatabaseName
 	logger = config.AppLogger
 
-	connectDatabase()
+	database := connectDatabase()
+	setDb(database)
 	initializeTable()
 }
 
-func connectDatabase() {
+func connectDatabase() *sql.DB {
 	database, err := sql.Open(sqlDriver, databaseName)
 	if err != nil {
 		panic(err)
 	}
 
-	db = database
+	return database
 }
 
 func initializeTable() {
@@ -62,6 +63,10 @@ func initializeTable() {
 	}
 }
 
+func setDb(database *sql.DB) {
+	db = database
+}
+
 func GetTaskById(id string) ([]domain.Task, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -70,7 +75,7 @@ func GetTaskById(id string) ([]domain.Task, error) {
 	defer completeTransaction(err, tx)
 
 	rows, err := tx.Query(getByIdQuery, id)
-	var tasks []domain.Task
+	tasks := []domain.Task{}
 
 	for err == nil && rows.Next() {
 		var task domain.Task
@@ -90,7 +95,7 @@ func GetAllTasks() ([]domain.Task, error) {
 	defer completeTransaction(err, tx)
 
 	rows, err := tx.Query(getAllQuery)
-	var tasks []domain.Task
+	tasks := []domain.Task{}
 
 	for err == nil && rows.Next() {
 		var task domain.Task

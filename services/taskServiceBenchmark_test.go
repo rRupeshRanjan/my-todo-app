@@ -2,69 +2,23 @@ package services
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"github.com/gofiber/fiber/v2"
-	"io"
 	"my-todo-app/domain"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-type taskRepositoryMock struct{}
-
-type scenario struct {
-	name         string
-	task         domain.Task
-	tasks        []domain.Task
-	data         []byte
-	statusCode   int
-	err          error
-	rowsAffected int64
-}
-
-var (
-	taskRepositoryGetByIdMock     func(id string) ([]domain.Task, error)
-	taskRepositoryGetAllTasksMock func() ([]domain.Task, error)
-	taskRepositoryCreateTaskMock  func(task domain.Task) (int64, error)
-	taskRepositoryUpdateTaskMock  func(task domain.Task, id string) error
-	taskRepositoryDeleteTaskMock  func(id string) (int64, error)
-	taskRepositorySearchTasksMock func(params map[string]string) ([]domain.Task, error)
-
-	testApp = fiber.New()
-)
-
-func (t taskRepositoryMock) getTaskById(id string) ([]domain.Task, error) {
-	return taskRepositoryGetByIdMock(id)
-}
-
-func (t taskRepositoryMock) getAllTasks() ([]domain.Task, error) {
-	return taskRepositoryGetAllTasksMock()
-}
-
-func (t taskRepositoryMock) createTask(task domain.Task) (int64, error) {
-	return taskRepositoryCreateTaskMock(task)
-}
-
-func (t taskRepositoryMock) updateTask(task domain.Task, id string) error {
-	return taskRepositoryUpdateTaskMock(task, id)
-}
-
-func (t taskRepositoryMock) deleteTask(id string) (int64, error) {
-	return taskRepositoryDeleteTaskMock(id)
-}
-
-func (t taskRepositoryMock) searchTasks(params map[string]string) ([]domain.Task, error) {
-	return taskRepositorySearchTasksMock(params)
-}
-
-func TestSetup(t *testing.T) {
+func BenchmarkInit(b *testing.B) {
 	taskRepository = taskRepositoryMock{}
+	testApp = fiber.New()
 }
 
-func TestGetTaskByIdHandler(t *testing.T) {
-	t.Parallel()
+func BenchmarkGetTaskByIdHandler(b *testing.B) {
+	testApp.Get("/task/:id", func(c *fiber.Ctx) error {
+		return GetTaskByIdHandler(c)
+	})
 	scenarios := []scenario{
 		{
 			name: "should successfully get task by id",
@@ -91,30 +45,24 @@ func TestGetTaskByIdHandler(t *testing.T) {
 		},
 	}
 
-	testApp.Get("/task/:id", func(c *fiber.Ctx) error {
-		return GetTaskByIdHandler(c)
-	})
-
-	request := httptest.NewRequest("GET", "http://localhost.com/task/8", nil)
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
-
+		b.Run(scenario.name, func(b *testing.B) {
 			taskRepositoryGetByIdMock = func(id string) ([]domain.Task, error) {
 				return scenario.tasks, scenario.err
 			}
 
-			response, _ := testApp.Test(request)
-			if response.StatusCode == 200 {
-				compareResponses(t, scenario.statusCode, scenario.tasks[0], response)
-			} else {
-				compareResponses(t, scenario.statusCode, nil, response)
+			request := httptest.NewRequest("GET", "http://localhost.com/task/8", nil)
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				response, _ := testApp.Test(request)
+				compareStatusCodes(b, response, scenario)
 			}
+			b.StopTimer()
 		})
 	}
 }
 
-func TestGetAllTasksHandler(t *testing.T) {
-	t.Parallel()
+func BenchmarkGetAllTasksHandler(b *testing.B) {
 	scenarios := []scenario{
 		{
 			name: "should successfully get all tasks",
@@ -154,22 +102,24 @@ func TestGetAllTasksHandler(t *testing.T) {
 		return GetAllTasksHandler(c)
 	})
 
-	request := httptest.NewRequest("GET", "http://localhost.com/tasks", nil)
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
-
+		b.Run(scenario.name, func(b *testing.B) {
 			taskRepositoryGetAllTasksMock = func() ([]domain.Task, error) {
 				return scenario.tasks, scenario.err
 			}
+			request := httptest.NewRequest("GET", "http://localhost.com/tasks", nil)
 
-			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, scenario.tasks, response)
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				response, _ := testApp.Test(request)
+				compareStatusCodes(b, response, scenario)
+			}
+			b.StopTimer()
 		})
 	}
 }
 
-func TestCreateTaskHandler(t *testing.T) {
-	t.Parallel()
+func BenchmarkCreateTaskHandler(b *testing.B) {
 	scenarios := []scenario{
 		{
 			name: "should successfully create task",
@@ -217,21 +167,24 @@ func TestCreateTaskHandler(t *testing.T) {
 	})
 
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
+		b.Run(scenario.name, func(b *testing.B) {
 
 			taskRepositoryCreateTaskMock = func(task domain.Task) (int64, error) {
 				return 1, scenario.err
 			}
 
 			request := httptest.NewRequest("POST", "http://localhost.com/task", bytes.NewBuffer(scenario.data))
-			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, scenario.task, response)
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				response, _ := testApp.Test(request)
+				compareStatusCodes(b, response, scenario)
+			}
+			b.StopTimer()
 		})
 	}
 }
 
-func TestUpdateTaskByIdHandler(t *testing.T) {
-	t.Parallel()
+func BenchmarkUpdateTaskByIdHandler(b *testing.B) {
 	scenarios := []scenario{
 		{
 			name: "should successfully update a task",
@@ -272,21 +225,26 @@ func TestUpdateTaskByIdHandler(t *testing.T) {
 	})
 
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
-
+		b.Run(scenario.name, func(b *testing.B) {
 			taskRepositoryUpdateTaskMock = func(task domain.Task, id string) error {
 				return scenario.err
 			}
 
 			request := httptest.NewRequest("PUT", "http://localhost.com/task/1", bytes.NewBuffer(scenario.data))
-			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, scenario.task, response)
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				response, _ := testApp.Test(request)
+				compareStatusCodes(b, response, scenario)
+			}
+			b.StopTimer()
 		})
 	}
 }
 
-func TestDeleteTaskByIdHandler(t *testing.T) {
-	t.Parallel()
+func BenchmarkDeleteTaskByIdHandler(b *testing.B) {
+	testApp.Delete("/task/:id", func(c *fiber.Ctx) error {
+		return DeleteTaskByIdHandler(c)
+	})
 	scenarios := []scenario{
 		{
 			name:         "should successfully delete task",
@@ -306,23 +264,25 @@ func TestDeleteTaskByIdHandler(t *testing.T) {
 			err:        errors.New("error deleting record from database"),
 		},
 	}
-	testApp.Delete("/task/:id", func(c *fiber.Ctx) error {
-		return DeleteTaskByIdHandler(c)
-	})
 
-	request := httptest.NewRequest("DELETE", "http://localhost.com/task/8", nil)
 	for _, scenario := range scenarios {
-		taskRepositoryDeleteTaskMock = func(id string) (int64, error) {
-			return scenario.rowsAffected, scenario.err
-		}
+		b.Run(scenario.name, func(b *testing.B) {
+			request := httptest.NewRequest("DELETE", "http://localhost.com/task/8", nil)
+			taskRepositoryDeleteTaskMock = func(id string) (int64, error) {
+				return scenario.rowsAffected, scenario.err
+			}
 
-		response, _ := testApp.Test(request)
-		compareResponses(t, scenario.statusCode, nil, response)
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				response, _ := testApp.Test(request)
+				compareStatusCodes(b, response, scenario)
+			}
+			b.StopTimer()
+		})
 	}
 }
 
-func TestSearchHandler(t *testing.T) {
-	t.Parallel()
+func BenchmarkSearchHandler(b *testing.B) {
 	scenarios := []scenario{
 		{
 			name:       "should throw 501",
@@ -335,16 +295,19 @@ func TestSearchHandler(t *testing.T) {
 	})
 
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
+		b.Run(scenario.name, func(b *testing.B) {
 			request := httptest.NewRequest("GET", "http://localhost.com/tasks/search", nil)
-			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, nil, response)
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				response, _ := testApp.Test(request)
+				compareStatusCodes(b, response, scenario)
+			}
+			b.StopTimer()
 		})
 	}
 }
 
-func TestUpdateBulkTaskHandler(t *testing.T) {
-	t.Parallel()
+func BenchmarkUpdateBulkTaskHandler(b *testing.B) {
 	scenarios := []scenario{
 		{
 			name:       "should throw 501",
@@ -357,39 +320,20 @@ func TestUpdateBulkTaskHandler(t *testing.T) {
 	})
 
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
+		b.Run(scenario.name, func(b *testing.B) {
 			request := httptest.NewRequest("PUT", "http://localhost.com/tasks/bulk-action", nil)
-			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, nil, response)
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				response, _ := testApp.Test(request)
+				compareStatusCodes(b, response, scenario)
+			}
+			b.StopTimer()
 		})
 	}
 }
 
-func compareResponses(t *testing.T, expectedStatusCode int, expectedBody interface{}, response *http.Response) {
-	if response.StatusCode != expectedStatusCode {
-		t.Errorf("Expected status code: %d, Got: %d", expectedStatusCode, response.StatusCode)
+func compareStatusCodes(b *testing.B, response *http.Response, scenario scenario) {
+	if response.StatusCode != scenario.statusCode {
+		b.Fatalf("Expected status code: %d, instead got: %d", scenario.statusCode, response.StatusCode)
 	}
-
-	if response.StatusCode == http.StatusOK {
-		actual := getStringFromResponseBody(response.Body)
-		expected := getStringFromStruct(expectedBody)
-		if actual != expected {
-			logMisMatchedData(t, expected, actual)
-		}
-	}
-}
-
-func logMisMatchedData(t *testing.T, expected string, actual string) {
-	t.Errorf("\nExpected: %v,\nGot     : %v", expected, actual)
-}
-
-func getStringFromResponseBody(body io.ReadCloser) string {
-	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(body)
-	return buf.String()
-}
-
-func getStringFromStruct(data interface{}) string {
-	byteData, _ := json.Marshal(data)
-	return string(byteData)
 }

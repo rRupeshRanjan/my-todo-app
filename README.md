@@ -30,6 +30,6 @@ This REST API can further be integrated with a UI (coming up) for better visuali
 - config.yaml
 
 #### TODO
-1. Benchmark tests for service and repository
+1. Benchmark tests for repository
 2. json schema parser for task
 3. Pass config file path from command line instead of hard-coding

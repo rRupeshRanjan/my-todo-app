@@ -69,11 +69,15 @@ func TestGetTaskById(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			id := scenario.id
 			mock.ExpectBegin()
-			mock.ExpectQuery(expectedSQL).WithArgs(id).WillReturnRows(scenario.rows)
-			mock.ExpectCommit()
+			mock.ExpectQuery(expectedSQL).WithArgs(id).WillReturnRows(scenario.rows).WillReturnError(scenario.scenarioErr)
+			if scenario.scenarioErr == nil {
+				mock.ExpectCommit()
+			} else {
+				mock.ExpectRollback()
+			}
 
 			tasks, err := GetTaskById(id)
-			if err != nil {
+			if err != scenario.scenarioErr {
 				t.Errorf("Expected no error, but got %s instead while reading from mockDb", err)
 			} else if mock.ExpectationsWereMet() != nil {
 				t.Errorf("Expectations were not met: %s", err)
@@ -115,17 +119,27 @@ func TestGetAllTasks(t *testing.T) {
 			expectedTasks: []domain.Task{},
 			rows:          sqlmock.NewRows(columns),
 		},
+		{
+			name:          "should rollback tx for errors",
+			expectedTasks: []domain.Task{},
+			scenarioErr:   errors.New("error occurred"),
+			rows:          sqlmock.NewRows(columns),
+		},
 	}
 	expectedSQL := "SELECT (.+) FROM tasks"
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			mock.ExpectBegin()
-			mock.ExpectQuery(expectedSQL).WillReturnRows(scenario.rows)
-			mock.ExpectCommit()
+			mock.ExpectQuery(expectedSQL).WillReturnRows(scenario.rows).WillReturnError(scenario.scenarioErr)
+			if scenario.scenarioErr == nil {
+				mock.ExpectCommit()
+			} else {
+				mock.ExpectRollback()
+			}
 
 			tasks, err := GetAllTasks()
-			if err != nil {
+			if err != scenario.scenarioErr {
 				t.Errorf("Expected no error, but got %s instead while reading from mockDb", err)
 			} else if mock.ExpectationsWereMet() != nil {
 				t.Errorf("Expectations were not met: %s", err)
@@ -149,6 +163,18 @@ func TestCreateTask(t *testing.T) {
 			},
 			insertId: 8,
 		},
+		{
+			name: "should rollback tx for errors",
+			task: domain.Task{
+				AddedOn:     1,
+				DueBy:       1,
+				Title:       "sample",
+				Description: "sample",
+				Status:      "sample",
+			},
+			insertId:    -1,
+			scenarioErr: errors.New("error occurred"),
+		},
 	}
 	expectedSQL := "INSERT INTO tasks \\(title, description, addedOn, dueBy, status\\) VALUES \\(\\?,\\?,\\?,\\?,\\?\\)"
 
@@ -158,11 +184,17 @@ func TestCreateTask(t *testing.T) {
 			mock.ExpectExec(expectedSQL).
 				WithArgs(scenario.task.Title, scenario.task.Description, scenario.task.AddedOn,
 					scenario.task.DueBy, scenario.task.Status).
-				WillReturnResult(sqlmock.NewResult(8, 1)).WillReturnError(scenario.scenarioErr)
-			mock.ExpectCommit()
+				WillReturnResult(sqlmock.NewResult(8, 1)).
+				WillReturnError(scenario.scenarioErr)
+
+			if scenario.scenarioErr == nil {
+				mock.ExpectCommit()
+			} else {
+				mock.ExpectRollback()
+			}
 
 			insertId, err := CreateTask(scenario.task)
-			if err != nil {
+			if err != scenario.scenarioErr {
 				t.Errorf("Expected no error, but got %s instead while reading from mockDb", err)
 			} else if mock.ExpectationsWereMet() != nil {
 				t.Errorf("Expectations were not met: %s", err)
@@ -187,6 +219,18 @@ func TestUpdateTask(t *testing.T) {
 				Status:      "sample",
 			},
 		},
+		{
+			name: "should rollback tx for errors",
+			task: domain.Task{
+				Id:          8,
+				AddedOn:     1,
+				DueBy:       1,
+				Title:       "sample",
+				Description: "sample",
+				Status:      "sample",
+			},
+			scenarioErr: errors.New("error occurred"),
+		},
 	}
 	expectedSQL := "UPDATE tasks SET title=\\?, description=\\?, addedOn=\\?, dueBy=\\?, status=\\? WHERE id=\\?"
 
@@ -196,11 +240,17 @@ func TestUpdateTask(t *testing.T) {
 			mock.ExpectExec(expectedSQL).
 				WithArgs(scenario.task.Title, scenario.task.Description, scenario.task.AddedOn,
 					scenario.task.DueBy, scenario.task.Status, "8").
-				WillReturnResult(sqlmock.NewResult(8, 1)).WillReturnError(scenario.scenarioErr)
-			mock.ExpectCommit()
+				WillReturnResult(sqlmock.NewResult(8, 1)).
+				WillReturnError(scenario.scenarioErr)
+
+			if scenario.scenarioErr == nil {
+				mock.ExpectCommit()
+			} else {
+				mock.ExpectRollback()
+			}
 
 			err := UpdateTask(scenario.task, "8")
-			if err != nil {
+			if err != scenario.scenarioErr {
 				t.Errorf("Expected no error, but got %s instead while reading from mockDb", err)
 			} else if mock.ExpectationsWereMet() != nil {
 				t.Errorf("Expectations were not met: %s", err)
@@ -220,6 +270,11 @@ func TestDeleteTask(t *testing.T) {
 			name:         "should not delete task if not present",
 			rowsAffected: 0,
 		},
+		{
+			name:         "should rollback tx for errors",
+			scenarioErr:  errors.New("error occurred"),
+			rowsAffected: 0,
+		},
 	}
 	expectedSQL := "DELETE FROM tasks WHERE id=\\?"
 
@@ -227,11 +282,16 @@ func TestDeleteTask(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			mock.ExpectBegin()
 			mock.ExpectExec(expectedSQL).WithArgs("8").
-				WillReturnResult(sqlmock.NewResult(-1, scenario.rowsAffected))
-			mock.ExpectCommit()
+				WillReturnResult(sqlmock.NewResult(-1, scenario.rowsAffected)).
+				WillReturnError(scenario.scenarioErr)
+			if scenario.scenarioErr == nil {
+				mock.ExpectCommit()
+			} else {
+				mock.ExpectRollback()
+			}
 
 			rowsAffected, err := DeleteTask("8")
-			if err != nil {
+			if err != scenario.scenarioErr {
 				t.Errorf("Expected no error, but got %s instead while reading from mockDb", err)
 			} else if mock.ExpectationsWereMet() != nil {
 				t.Errorf("Expectations were not met: %s", err)

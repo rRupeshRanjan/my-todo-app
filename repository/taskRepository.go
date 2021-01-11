@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 	"my-todo-app/config"
@@ -55,7 +54,14 @@ func initializeTable() {
 	if err != nil {
 		return
 	}
-	defer completeTransaction(err, tx)
+	defer func() {
+		switch err {
+		case nil:
+			tx.Commit()
+		default:
+			tx.Rollback()
+		}
+	}()
 
 	_, err = db.Exec(initDbQuery)
 	if err != nil {
@@ -72,7 +78,14 @@ func GetTaskById(id string) ([]domain.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer completeTransaction(err, tx)
+	defer func() {
+		switch err {
+		case nil:
+			tx.Commit()
+		default:
+			tx.Rollback()
+		}
+	}()
 
 	rows, err := tx.Query(getByIdQuery, id)
 	tasks := []domain.Task{}
@@ -92,7 +105,14 @@ func GetAllTasks() ([]domain.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer completeTransaction(err, tx)
+	defer func() {
+		switch err {
+		case nil:
+			tx.Commit()
+		default:
+			tx.Rollback()
+		}
+	}()
 
 	rows, err := tx.Query(getAllQuery)
 	tasks := []domain.Task{}
@@ -112,7 +132,14 @@ func CreateTask(task domain.Task) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-	defer completeTransaction(err, tx)
+	defer func() {
+		switch err {
+		case nil:
+			tx.Commit()
+		default:
+			tx.Rollback()
+		}
+	}()
 
 	result, err := tx.Exec(createQuery, task.Title, task.Description, task.AddedOn, task.DueBy, task.Status)
 	if err == nil && result != nil {
@@ -126,7 +153,14 @@ func UpdateTask(task domain.Task, id string) error {
 	if err != nil {
 		return err
 	}
-	defer completeTransaction(err, tx)
+	defer func() {
+		switch err {
+		case nil:
+			tx.Commit()
+		default:
+			tx.Rollback()
+		}
+	}()
 
 	_, err = tx.Exec(updateQuery, task.Title, task.Description, task.AddedOn, task.DueBy, task.Status, id)
 	return err
@@ -137,7 +171,14 @@ func DeleteTask(id string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer completeTransaction(err, tx)
+	defer func() {
+		switch err {
+		case nil:
+			tx.Commit()
+		default:
+			tx.Rollback()
+		}
+	}()
 
 	result, err := tx.Exec(deleteQuery, id)
 	if err == nil && result != nil {
@@ -150,17 +191,4 @@ func DeleteTask(id string) (int64, error) {
 // TODO:: Implement this
 func SearchTasks(params map[string]string) ([]domain.Task, error) {
 	return []domain.Task{}, nil
-}
-
-func completeTransaction(err error, tx *sql.Tx) {
-	switch err {
-	case nil:
-		err = tx.Commit()
-	default:
-		err = tx.Rollback()
-	}
-
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error completing the transaction: %s", err))
-	}
 }

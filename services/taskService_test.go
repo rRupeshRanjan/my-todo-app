@@ -3,26 +3,16 @@ package services
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"github.com/gofiber/fiber/v2"
 	"io"
 	"my-todo-app/domain"
+	"my-todo-app/testUtils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
 type taskRepositoryMock struct{}
-
-type scenario struct {
-	name         string
-	task         domain.Task
-	tasks        []domain.Task
-	data         []byte
-	statusCode   int
-	err          error
-	rowsAffected int64
-}
 
 var (
 	taskRepositoryGetByIdMock     func(id string) ([]domain.Task, error)
@@ -65,31 +55,7 @@ func TestSetup(t *testing.T) {
 
 func TestGetTaskByIdHandler(t *testing.T) {
 	t.Parallel()
-	scenarios := []scenario{
-		{
-			name: "should successfully get task by id",
-			tasks: []domain.Task{{
-				Id:          8,
-				AddedOn:     123456789,
-				DueBy:       123456789,
-				Title:       "sample title",
-				Description: "sample description",
-				Status:      "sample status",
-			}},
-			statusCode: http.StatusOK,
-		},
-		{
-			name:       "should give 404 for get task by id",
-			tasks:      []domain.Task{},
-			statusCode: http.StatusNotFound,
-		},
-		{
-			name:       "should give 500 for get task by id for database errors",
-			tasks:      []domain.Task{},
-			err:        errors.New("error while fetching data"),
-			statusCode: http.StatusInternalServerError,
-		},
-	}
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetTaskByIdKey)
 
 	testApp.Get("/task/:id", func(c *fiber.Ctx) error {
 		return GetTaskByIdHandler(c)
@@ -97,17 +63,17 @@ func TestGetTaskByIdHandler(t *testing.T) {
 
 	request := httptest.NewRequest("GET", "http://localhost.com/task/8", nil)
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
+		t.Run(scenario.Name, func(t *testing.T) {
 
 			taskRepositoryGetByIdMock = func(id string) ([]domain.Task, error) {
-				return scenario.tasks, scenario.err
+				return scenario.ExpectedTasks, scenario.ScenarioErr
 			}
 
 			response, _ := testApp.Test(request)
 			if response.StatusCode == 200 {
-				compareResponses(t, scenario.statusCode, scenario.tasks[0], response)
+				compareResponses(t, scenario.StatusCode, scenario.ExpectedTasks[0], response)
 			} else {
-				compareResponses(t, scenario.statusCode, nil, response)
+				compareResponses(t, scenario.StatusCode, nil, response)
 			}
 		})
 	}
@@ -115,197 +81,72 @@ func TestGetTaskByIdHandler(t *testing.T) {
 
 func TestGetAllTasksHandler(t *testing.T) {
 	t.Parallel()
-	scenarios := []scenario{
-		{
-			name: "should successfully get all tasks",
-			tasks: []domain.Task{
-				{
-					Id:          8,
-					AddedOn:     123456789,
-					DueBy:       123456789,
-					Title:       "sample title",
-					Description: "sample description",
-					Status:      "sample status",
-				},
-				{
-					Id:          9,
-					AddedOn:     12345678,
-					DueBy:       12345678,
-					Title:       "sample title 2",
-					Description: "sample description 2",
-					Status:      "sample status 2",
-				}},
-			statusCode: http.StatusOK,
-		},
-		{
-			name:       "should give zero tasks with status code 200",
-			tasks:      []domain.Task{},
-			statusCode: http.StatusOK,
-		},
-		{
-			name:       "should give 500 for get task by id for database errors",
-			tasks:      []domain.Task{},
-			err:        errors.New("error while fetching data"),
-			statusCode: http.StatusInternalServerError,
-		},
-	}
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetAllTasksKey)
 
-	testApp.Get("/tasks", func(c *fiber.Ctx) error {
+	testApp.Get("/expectedTasks", func(c *fiber.Ctx) error {
 		return GetAllTasksHandler(c)
 	})
 
-	request := httptest.NewRequest("GET", "http://localhost.com/tasks", nil)
+	request := httptest.NewRequest("GET", "http://localhost.com/expectedTasks", nil)
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
+		t.Run(scenario.Name, func(t *testing.T) {
 
 			taskRepositoryGetAllTasksMock = func() ([]domain.Task, error) {
-				return scenario.tasks, scenario.err
+				return scenario.ExpectedTasks, scenario.ScenarioErr
 			}
 
 			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, scenario.tasks, response)
+			compareResponses(t, scenario.StatusCode, scenario.ExpectedTasks, response)
 		})
 	}
 }
 
 func TestCreateTaskHandler(t *testing.T) {
 	t.Parallel()
-	scenarios := []scenario{
-		{
-			name: "should successfully create task",
-			task: domain.Task{
-				Id:          1,
-				AddedOn:     123,
-				DueBy:       123,
-				Title:       "sample",
-				Description: "sample",
-				Status:      "sample",
-			},
-			data:       []byte(`{"addedOn": 123, "dueBy": 123, "title": "sample", "description": "sample", "status": "sample"}`),
-			statusCode: http.StatusOK,
-			err:        nil,
-		},
-		{
-			name: "should create task overriding the id from request body",
-			task: domain.Task{
-				Id:          1,
-				AddedOn:     123,
-				DueBy:       123,
-				Title:       "sample",
-				Description: "sample",
-				Status:      "sample",
-			},
-			data:       []byte(`{"id": 8, "addedOn": 123, "dueBy": 123, "title": "sample", "description": "sample", "status": "sample"}`),
-			statusCode: http.StatusOK,
-			err:        nil,
-		},
-		{
-			name:       "should throw 400 in create task for malformed body",
-			data:       []byte(`{addedOn": 123456789, "dueBy": 123456789, "title": "sample`),
-			statusCode: http.StatusBadRequest,
-			err:        nil,
-		},
-		{
-			name:       "should throw 500 in create task for database errors",
-			data:       []byte(`{"addedOn": 123, "dueBy": 123, "title": "sample", "description": "sample", "status": "sample"}`),
-			statusCode: http.StatusInternalServerError,
-			err:        errors.New("error creating task in database"),
-		},
-	}
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.CreateTaskKey)
 	testApp.Post("/task", func(c *fiber.Ctx) error {
 		return CreateTaskHandler(c)
 	})
 
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
+		t.Run(scenario.Name, func(t *testing.T) {
 
 			taskRepositoryCreateTaskMock = func(task domain.Task) (int64, error) {
-				return 1, scenario.err
+				return 1, scenario.ScenarioErr
 			}
 
-			request := httptest.NewRequest("POST", "http://localhost.com/task", bytes.NewBuffer(scenario.data))
+			request := httptest.NewRequest("POST", "http://localhost.com/task", bytes.NewBuffer(scenario.Data))
 			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, scenario.task, response)
+			compareResponses(t, scenario.StatusCode, scenario.Task, response)
 		})
 	}
 }
 
 func TestUpdateTaskByIdHandler(t *testing.T) {
 	t.Parallel()
-	scenarios := []scenario{
-		{
-			name: "should successfully update a task",
-			task: domain.Task{
-				Id:          1,
-				AddedOn:     123,
-				DueBy:       123,
-				Title:       "sample",
-				Description: "sample",
-				Status:      "sample",
-			},
-			data:       []byte(`{"id": 1, "addedOn": 123, "dueBy": 123, "title": "sample", "description": "sample", "status": "sample"}`),
-			statusCode: http.StatusOK,
-			err:        nil,
-		},
-		{
-			name:       "should throw 400 in update task if IDs are different in URL and request body",
-			data:       []byte(`{"id": 8, "addedOn": 123, "dueBy": 123, "title": "sample", "description": "sample", "status": "sample"}`),
-			statusCode: http.StatusBadRequest,
-			err:        nil,
-		},
-		{
-			name:       "should throw 400 in update task for malformed body",
-			data:       []byte(`{"id": 1, "addedOn": 123, "dueBy": 123, "title": "sample}`),
-			statusCode: http.StatusBadRequest,
-			err:        nil,
-		},
-		{
-			name:       "should throw 500 in update task database errors",
-			data:       []byte(`{"id": 1, "addedOn": 123, "dueBy": 123, "title": "sample"}`),
-			statusCode: http.StatusInternalServerError,
-			err:        errors.New("error occurred updating task in database"),
-		},
-	}
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.UpdateTaskKey)
 
 	testApp.Put("/task/:id", func(c *fiber.Ctx) error {
 		return UpdateTaskByIdHandler(c)
 	})
 
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
+		t.Run(scenario.Name, func(t *testing.T) {
 
 			taskRepositoryUpdateTaskMock = func(task domain.Task, id string) error {
-				return scenario.err
+				return scenario.ScenarioErr
 			}
 
-			request := httptest.NewRequest("PUT", "http://localhost.com/task/1", bytes.NewBuffer(scenario.data))
+			request := httptest.NewRequest("PUT", "http://localhost.com/task/1", bytes.NewBuffer(scenario.Data))
 			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, scenario.task, response)
+			compareResponses(t, scenario.StatusCode, scenario.Task, response)
 		})
 	}
 }
 
 func TestDeleteTaskByIdHandler(t *testing.T) {
 	t.Parallel()
-	scenarios := []scenario{
-		{
-			name:         "should successfully delete task",
-			statusCode:   http.StatusNoContent,
-			err:          nil,
-			rowsAffected: 1,
-		},
-		{
-			name:         "should throw 404 delete task if not present in database",
-			statusCode:   http.StatusNotFound,
-			err:          nil,
-			rowsAffected: 0,
-		},
-		{
-			name:       "should throw 500 in delete task for database errors",
-			statusCode: http.StatusInternalServerError,
-			err:        errors.New("error deleting record from database"),
-		},
-	}
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.DeleteTaskKey)
 	testApp.Delete("/task/:id", func(c *fiber.Ctx) error {
 		return DeleteTaskByIdHandler(c)
 	})
@@ -313,54 +154,44 @@ func TestDeleteTaskByIdHandler(t *testing.T) {
 	request := httptest.NewRequest("DELETE", "http://localhost.com/task/8", nil)
 	for _, scenario := range scenarios {
 		taskRepositoryDeleteTaskMock = func(id string) (int64, error) {
-			return scenario.rowsAffected, scenario.err
+			return scenario.RowsAffected, scenario.ScenarioErr
 		}
 
 		response, _ := testApp.Test(request)
-		compareResponses(t, scenario.statusCode, nil, response)
+		compareResponses(t, scenario.StatusCode, nil, response)
 	}
 }
 
 func TestSearchHandler(t *testing.T) {
 	t.Parallel()
-	scenarios := []scenario{
-		{
-			name:       "should throw 501",
-			statusCode: http.StatusNotImplemented,
-		},
-	}
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.SearchTaskKey)
 
-	testApp.Get("/tasks/search", func(c *fiber.Ctx) error {
+	testApp.Get("/expectedTasks/search", func(c *fiber.Ctx) error {
 		return SearchHandler(c)
 	})
 
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
-			request := httptest.NewRequest("GET", "http://localhost.com/tasks/search", nil)
+		t.Run(scenario.Name, func(t *testing.T) {
+			request := httptest.NewRequest("GET", "http://localhost.com/expectedTasks/search", nil)
 			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, nil, response)
+			compareResponses(t, scenario.StatusCode, nil, response)
 		})
 	}
 }
 
 func TestUpdateBulkTaskHandler(t *testing.T) {
 	t.Parallel()
-	scenarios := []scenario{
-		{
-			name:       "should throw 501",
-			statusCode: http.StatusNotImplemented,
-		},
-	}
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.BulkUpdateTaskKey)
 
-	testApp.Put("/tasks/bulk-action", func(c *fiber.Ctx) error {
+	testApp.Put("/expectedTasks/bulk-action", func(c *fiber.Ctx) error {
 		return UpdateBulkTaskHandler(c)
 	})
 
 	for _, scenario := range scenarios {
-		t.Run(scenario.name, func(t *testing.T) {
-			request := httptest.NewRequest("PUT", "http://localhost.com/tasks/bulk-action", nil)
+		t.Run(scenario.Name, func(t *testing.T) {
+			request := httptest.NewRequest("PUT", "http://localhost.com/expectedTasks/bulk-action", nil)
 			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.statusCode, nil, response)
+			compareResponses(t, scenario.StatusCode, nil, response)
 		})
 	}
 }

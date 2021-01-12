@@ -75,11 +75,11 @@ func GetTaskByIdHandler(c *fiber.Ctx) error {
 func GetAllTasksHandler(c *fiber.Ctx) error {
 	tasks, err := taskRepository.getAllTasks()
 	if err == nil {
-		logger.Info(fmt.Sprintf("No. of tasks fetched: %d", len(tasks)))
+		logger.Info(fmt.Sprintf("No. of expectedTasks fetched: %d", len(tasks)))
 		return c.JSON(tasks)
 	}
 
-	logger.Error(fmt.Sprintf("Error fetching all tasks: %s", err))
+	logger.Error(fmt.Sprintf("Error fetching all expectedTasks: %s", err))
 	return c.SendStatus(http.StatusInternalServerError)
 }
 

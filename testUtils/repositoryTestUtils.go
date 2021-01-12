@@ -6,8 +6,6 @@ import (
 	"my-todo-app/domain"
 )
 
-var columns = []string{"o_id", "o_title", "o_description", "o_addedOn", "o_dueBy", "o_status"}
-
 func GetRepositoryTestScenarios(action string) []domain.Scenario {
 	switch action {
 	case GetTaskByIdKey:

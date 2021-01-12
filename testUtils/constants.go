@@ -9,3 +9,5 @@ const (
 	SearchTaskKey     = "searchTask"
 	BulkUpdateTaskKey = "bulkUpdateTask"
 )
+
+var columns = []string{"o_id", "o_title", "o_description", "o_addedOn", "o_dueBy", "o_status"}

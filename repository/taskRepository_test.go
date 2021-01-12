@@ -29,13 +29,7 @@ func TestGetTaskById(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			id := scenario.Id
-			mock.ExpectBegin()
-			mock.ExpectQuery(expectedSQL).WithArgs(id).WillReturnRows(scenario.Rows).WillReturnError(scenario.ScenarioErr)
-			if scenario.ScenarioErr == nil {
-				mock.ExpectCommit()
-			} else {
-				mock.ExpectRollback()
-			}
+			testUtils.GetRepositoryMocks(testUtils.GetTaskByIdKey, mock, expectedSQL, id, scenario)
 
 			tasks, err := GetTaskById(id)
 			if err != scenario.ScenarioErr {
@@ -55,13 +49,7 @@ func TestGetAllTasks(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			mock.ExpectBegin()
-			mock.ExpectQuery(expectedSQL).WillReturnRows(scenario.Rows).WillReturnError(scenario.ScenarioErr)
-			if scenario.ScenarioErr == nil {
-				mock.ExpectCommit()
-			} else {
-				mock.ExpectRollback()
-			}
+			testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, expectedSQL, "", scenario)
 
 			tasks, err := GetAllTasks()
 			if err != scenario.ScenarioErr {
@@ -81,18 +69,7 @@ func TestCreateTask(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			mock.ExpectBegin()
-			mock.ExpectExec(expectedSQL).
-				WithArgs(scenario.Task.Title, scenario.Task.Description, scenario.Task.AddedOn,
-					scenario.Task.DueBy, scenario.Task.Status).
-				WillReturnResult(sqlmock.NewResult(8, 1)).
-				WillReturnError(scenario.ScenarioErr)
-
-			if scenario.ScenarioErr == nil {
-				mock.ExpectCommit()
-			} else {
-				mock.ExpectRollback()
-			}
+			testUtils.GetRepositoryMocks(testUtils.CreateTaskKey, mock, expectedSQL, "", scenario)
 
 			insertId, err := CreateTask(scenario.Task)
 			if err != scenario.ScenarioErr {
@@ -113,18 +90,7 @@ func TestUpdateTask(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			mock.ExpectBegin()
-			mock.ExpectExec(expectedSQL).
-				WithArgs(scenario.Task.Title, scenario.Task.Description, scenario.Task.AddedOn,
-					scenario.Task.DueBy, scenario.Task.Status, "8").
-				WillReturnResult(sqlmock.NewResult(8, 1)).
-				WillReturnError(scenario.ScenarioErr)
-
-			if scenario.ScenarioErr == nil {
-				mock.ExpectCommit()
-			} else {
-				mock.ExpectRollback()
-			}
+			testUtils.GetRepositoryMocks(testUtils.UpdateTaskKey, mock, expectedSQL, scenario.Id, scenario)
 
 			err := UpdateTask(scenario.Task, "8")
 			if err != scenario.ScenarioErr {
@@ -140,20 +106,13 @@ func TestUpdateTask(t *testing.T) {
 func TestDeleteTask(t *testing.T) {
 	scenarios := testUtils.GetRepositoryTestScenarios(testUtils.DeleteTaskKey)
 	expectedSQL := "DELETE FROM tasks WHERE id=\\?"
+	id := "8"
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			mock.ExpectBegin()
-			mock.ExpectExec(expectedSQL).WithArgs("8").
-				WillReturnResult(sqlmock.NewResult(-1, scenario.RowsAffected)).
-				WillReturnError(scenario.ScenarioErr)
-			if scenario.ScenarioErr == nil {
-				mock.ExpectCommit()
-			} else {
-				mock.ExpectRollback()
-			}
+			testUtils.GetRepositoryMocks(testUtils.DeleteTaskKey, mock, expectedSQL, id, scenario)
 
-			rowsAffected, err := DeleteTask("8")
+			rowsAffected, err := DeleteTask(id)
 			if err != scenario.ScenarioErr {
 				t.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 			} else if mock.ExpectationsWereMet() != nil {

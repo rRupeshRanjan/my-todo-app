@@ -16,7 +16,7 @@ type taskRepositoryMock struct{}
 
 var (
 	taskRepositoryGetByIdMock     func(id string) ([]domain.Task, error)
-	taskRepositoryGetAllTasksMock func() ([]domain.Task, error)
+	taskRepositoryGetAllTasksMock func(page int64, perPage int64) ([]domain.Task, error)
 	taskRepositoryCreateTaskMock  func(task domain.Task) (int64, error)
 	taskRepositoryUpdateTaskMock  func(task domain.Task, id string) error
 	taskRepositoryDeleteTaskMock  func(id string) (int64, error)
@@ -29,8 +29,8 @@ func (t taskRepositoryMock) GetTaskById(id string) ([]domain.Task, error) {
 	return taskRepositoryGetByIdMock(id)
 }
 
-func (t taskRepositoryMock) GetAllTasks() ([]domain.Task, error) {
-	return taskRepositoryGetAllTasksMock()
+func (t taskRepositoryMock) GetAllTasks(page int64, perPage int64) ([]domain.Task, error) {
+	return taskRepositoryGetAllTasksMock(page, perPage)
 }
 
 func (t taskRepositoryMock) CreateTask(task domain.Task) (int64, error) {
@@ -91,7 +91,7 @@ func TestGetAllTasksHandler(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 
-			taskRepositoryGetAllTasksMock = func() ([]domain.Task, error) {
+			taskRepositoryGetAllTasksMock = func(page int64, perPage int64) ([]domain.Task, error) {
 				return scenario.ExpectedTasks, scenario.ScenarioErr
 			}
 

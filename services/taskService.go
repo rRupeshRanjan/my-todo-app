@@ -38,7 +38,16 @@ func GetTaskByIdHandler(c *fiber.Ctx) error {
 }
 
 func GetAllTasksHandler(c *fiber.Ctx) error {
-	tasks, err := taskRepository.GetAllTasks()
+	page, err := strconv.ParseInt(c.Query("page"), 10, 64)
+	if err != nil {
+		page = 0
+	}
+	perPage, err := strconv.ParseInt(c.Query("perPage"), 10, 64)
+	if err != nil {
+		perPage = 10
+	}
+
+	tasks, err := taskRepository.GetAllTasks(page, perPage)
 	if err == nil {
 		logger.Info(fmt.Sprintf("No. of expectedTasks fetched: %d", len(tasks)))
 		return c.JSON(tasks)

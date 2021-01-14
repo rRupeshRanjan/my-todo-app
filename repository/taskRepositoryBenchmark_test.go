@@ -46,7 +46,7 @@ func BenchmarkGetAllTasks(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, expectedSQL, "", scenario)
 
-				_, err := getAllTasks()
+				_, err := getAllTasks(0, 10)
 				if err != scenario.ScenarioErr {
 					b.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 				}

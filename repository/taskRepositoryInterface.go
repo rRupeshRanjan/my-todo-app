@@ -8,7 +8,7 @@ type TaskRepository struct{}
 
 type TaskRepositoryInterface interface {
 	GetTaskById(id string) ([]domain.Task, error)
-	GetAllTasks() ([]domain.Task, error)
+	GetAllTasks(page int64, perPage int64) ([]domain.Task, error)
 	CreateTask(task domain.Task) (int64, error)
 	UpdateTask(task domain.Task, id string) error
 	DeleteTask(id string) (int64, error)
@@ -19,8 +19,8 @@ func (t TaskRepository) GetTaskById(id string) ([]domain.Task, error) {
 	return getTaskById(id)
 }
 
-func (t TaskRepository) GetAllTasks() ([]domain.Task, error) {
-	return getAllTasks()
+func (t TaskRepository) GetAllTasks(page int64, perPage int64) ([]domain.Task, error) {
+	return getAllTasks(page, perPage)
 }
 
 func (t TaskRepository) CreateTask(task domain.Task) (int64, error) {

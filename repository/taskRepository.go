@@ -17,16 +17,16 @@ var (
 
 const (
 	getByIdQuery = "SELECT * FROM tasks WHERE id=?"
-	getAllQuery  = "SELECT * FROM tasks"
+	getAllQuery  = "SELECT * FROM tasks LIMIT ? OFFSET ?"
 	createQuery  = "INSERT INTO tasks (title, description, addedOn, dueBy, status) VALUES (?,?,?,?,?)"
 	updateQuery  = "UPDATE tasks SET title=?, description=?, addedOn=?, dueBy=?, status=? WHERE id=?"
 	deleteQuery  = "DELETE FROM tasks WHERE id=?"
 	initDbQuery  = `CREATE TABLE IF NOT EXISTS tasks (
-						id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT, 
+						id INT PRIMARY KEY NOT NULL AUTO_INCREMENT, 
 						title TEXT NOT NULL, 
 						description TEXT NOT NULL, 
-						addedOn INTEGER NOT NULL, 
-						dueBy INTEGER NOT NULL, 
+						addedOn BIGINT NOT NULL, 
+						dueBy BIGINT NOT NULL, 
 						status TEXT NOT NULL);`
 )
 
@@ -100,7 +100,7 @@ func getTaskById(id string) ([]domain.Task, error) {
 	return tasks, err
 }
 
-func getAllTasks() ([]domain.Task, error) {
+func getAllTasks(page int64, perPage int64) ([]domain.Task, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func getAllTasks() ([]domain.Task, error) {
 		}
 	}()
 
-	rows, err := tx.Query(getAllQuery)
+	rows, err := tx.Query(getAllQuery, perPage, page*perPage)
 	tasks := []domain.Task{}
 
 	for err == nil && rows.Next() {

@@ -51,7 +51,7 @@ func TestGetAllTasks(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, expectedSQL, "", scenario)
 
-			tasks, err := getAllTasks()
+			tasks, err := getAllTasks(0, 10)
 			if err != scenario.ScenarioErr {
 				t.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 			} else if mock.ExpectationsWereMet() != nil {

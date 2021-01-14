@@ -47,7 +47,7 @@ func BenchmarkGetAllTasksHandler(b *testing.B) {
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
-			taskRepositoryGetAllTasksMock = func() ([]domain.Task, error) {
+			taskRepositoryGetAllTasksMock = func(page int64, perPage int64) ([]domain.Task, error) {
 				return scenario.ExpectedTasks, scenario.ScenarioErr
 			}
 			request := httptest.NewRequest("GET", "http://localhost.com/expectedTasks", nil)

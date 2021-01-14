@@ -12,54 +12,19 @@ import (
 	"strconv"
 )
 
-type TaskRepository struct{}
-
-type TaskRepositoryInterface interface {
-	getTaskById(id string) ([]domain.Task, error)
-	getAllTasks() ([]domain.Task, error)
-	createTask(task domain.Task) (int64, error)
-	updateTask(task domain.Task, id string) error
-	deleteTask(id string) (int64, error)
-	searchTasks(params map[string]string) ([]domain.Task, error)
-}
-
-func (t TaskRepository) getTaskById(id string) ([]domain.Task, error) {
-	return repository.GetTaskById(id)
-}
-
-func (t TaskRepository) getAllTasks() ([]domain.Task, error) {
-	return repository.GetAllTasks()
-}
-
-func (t TaskRepository) createTask(task domain.Task) (int64, error) {
-	return repository.CreateTask(task)
-}
-
-func (t TaskRepository) updateTask(task domain.Task, id string) error {
-	return repository.UpdateTask(task, id)
-}
-
-func (t TaskRepository) deleteTask(id string) (int64, error) {
-	return repository.DeleteTask(id)
-}
-
-func (t TaskRepository) searchTasks(params map[string]string) ([]domain.Task, error) {
-	return repository.SearchTasks(params)
-}
-
 var (
-	taskRepository TaskRepositoryInterface
+	taskRepository repository.TaskRepositoryInterface
 	logger         *zap.Logger
 )
 
 func init() {
-	taskRepository = TaskRepository{}
+	taskRepository = repository.TaskRepository{}
 	logger = config.AppLogger
 }
 
 func GetTaskByIdHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
-	task, err := taskRepository.getTaskById(id)
+	task, err := taskRepository.GetTaskById(id)
 	if err == nil {
 		if len(task) == 0 {
 			logger.Info(fmt.Sprintf("No task found with id: %s", id))
@@ -73,7 +38,7 @@ func GetTaskByIdHandler(c *fiber.Ctx) error {
 }
 
 func GetAllTasksHandler(c *fiber.Ctx) error {
-	tasks, err := taskRepository.getAllTasks()
+	tasks, err := taskRepository.GetAllTasks()
 	if err == nil {
 		logger.Info(fmt.Sprintf("No. of expectedTasks fetched: %d", len(tasks)))
 		return c.JSON(tasks)
@@ -91,7 +56,7 @@ func CreateTaskHandler(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	createdId, err := taskRepository.createTask(task)
+	createdId, err := taskRepository.CreateTask(task)
 	if err == nil {
 		task.Id = createdId
 		return c.JSON(task)
@@ -111,7 +76,7 @@ func UpdateTaskByIdHandler(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	err = taskRepository.updateTask(task, id)
+	err = taskRepository.UpdateTask(task, id)
 	if err == nil {
 		return c.JSON(task)
 	}
@@ -122,7 +87,7 @@ func UpdateTaskByIdHandler(c *fiber.Ctx) error {
 
 func DeleteTaskByIdHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
-	rowsAffected, err := taskRepository.deleteTask(id)
+	rowsAffected, err := taskRepository.DeleteTask(id)
 	if err == nil {
 		if rowsAffected == 0 {
 			logger.Info(fmt.Sprintf("No task found with id: %s for deletion", id))

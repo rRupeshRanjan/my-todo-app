@@ -26,7 +26,7 @@ func BenchmarkGetTaskById(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				testUtils.GetRepositoryMocks(testUtils.GetTaskByIdKey, mock, expectedSQL, id, scenario)
 
-				_, err := GetTaskById(id)
+				_, err := getTaskById(id)
 				if err != scenario.ScenarioErr {
 					b.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 				}
@@ -46,7 +46,7 @@ func BenchmarkGetAllTasks(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, expectedSQL, "", scenario)
 
-				_, err := GetAllTasks()
+				_, err := getAllTasks()
 				if err != scenario.ScenarioErr {
 					b.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 				}
@@ -66,7 +66,7 @@ func BenchmarkCreateTask(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				testUtils.GetRepositoryMocks(testUtils.CreateTaskKey, mock, expectedSQL, "", scenario)
 
-				_, err := CreateTask(scenario.Task)
+				_, err := createTask(scenario.Task)
 				if err != scenario.ScenarioErr {
 					b.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 				}
@@ -86,7 +86,7 @@ func BenchmarkUpdateTask(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				testUtils.GetRepositoryMocks(testUtils.UpdateTaskKey, mock, expectedSQL, scenario.Id, scenario)
 
-				err := UpdateTask(scenario.Task, "8")
+				err := updateTask(scenario.Task, "8")
 				if err != scenario.ScenarioErr {
 					b.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 				}
@@ -107,7 +107,7 @@ func BenchmarkDeleteTask(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				testUtils.GetRepositoryMocks(testUtils.DeleteTaskKey, mock, expectedSQL, id, scenario)
 
-				_, err := DeleteTask(id)
+				_, err := deleteTask(id)
 				if err != scenario.ScenarioErr {
 					b.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 				}

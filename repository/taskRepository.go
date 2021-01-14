@@ -73,7 +73,7 @@ func setDb(database *sql.DB) {
 	db = database
 }
 
-func GetTaskById(id string) ([]domain.Task, error) {
+func getTaskById(id string) ([]domain.Task, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func GetTaskById(id string) ([]domain.Task, error) {
 	return tasks, err
 }
 
-func GetAllTasks() ([]domain.Task, error) {
+func getAllTasks() ([]domain.Task, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func GetAllTasks() ([]domain.Task, error) {
 	return tasks, err
 }
 
-func CreateTask(task domain.Task) (int64, error) {
+func createTask(task domain.Task) (int64, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return -1, err
@@ -148,7 +148,7 @@ func CreateTask(task domain.Task) (int64, error) {
 	return -1, err
 }
 
-func UpdateTask(task domain.Task, id string) error {
+func updateTask(task domain.Task, id string) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func UpdateTask(task domain.Task, id string) error {
 	return err
 }
 
-func DeleteTask(id string) (int64, error) {
+func deleteTask(id string) (int64, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return 0, err
@@ -189,6 +189,6 @@ func DeleteTask(id string) (int64, error) {
 }
 
 // TODO:: Implement this
-func SearchTasks(params map[string]string) ([]domain.Task, error) {
+func searchTasks(params map[string]string) ([]domain.Task, error) {
 	return []domain.Task{}, nil
 }

@@ -25,27 +25,27 @@ var (
 	testApp = fiber.New()
 )
 
-func (t taskRepositoryMock) getTaskById(id string) ([]domain.Task, error) {
+func (t taskRepositoryMock) GetTaskById(id string) ([]domain.Task, error) {
 	return taskRepositoryGetByIdMock(id)
 }
 
-func (t taskRepositoryMock) getAllTasks() ([]domain.Task, error) {
+func (t taskRepositoryMock) GetAllTasks() ([]domain.Task, error) {
 	return taskRepositoryGetAllTasksMock()
 }
 
-func (t taskRepositoryMock) createTask(task domain.Task) (int64, error) {
+func (t taskRepositoryMock) CreateTask(task domain.Task) (int64, error) {
 	return taskRepositoryCreateTaskMock(task)
 }
 
-func (t taskRepositoryMock) updateTask(task domain.Task, id string) error {
+func (t taskRepositoryMock) UpdateTask(task domain.Task, id string) error {
 	return taskRepositoryUpdateTaskMock(task, id)
 }
 
-func (t taskRepositoryMock) deleteTask(id string) (int64, error) {
+func (t taskRepositoryMock) DeleteTask(id string) (int64, error) {
 	return taskRepositoryDeleteTaskMock(id)
 }
 
-func (t taskRepositoryMock) searchTasks(params map[string]string) ([]domain.Task, error) {
+func (t taskRepositoryMock) SearchTasks(params map[string]string) ([]domain.Task, error) {
 	return taskRepositorySearchTasksMock(params)
 }
 

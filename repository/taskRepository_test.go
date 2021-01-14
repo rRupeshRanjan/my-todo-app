@@ -31,7 +31,7 @@ func TestGetTaskById(t *testing.T) {
 			id := scenario.Id
 			testUtils.GetRepositoryMocks(testUtils.GetTaskByIdKey, mock, expectedSQL, id, scenario)
 
-			tasks, err := GetTaskById(id)
+			tasks, err := getTaskById(id)
 			if err != scenario.ScenarioErr {
 				t.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 			} else if mock.ExpectationsWereMet() != nil {
@@ -51,7 +51,7 @@ func TestGetAllTasks(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, expectedSQL, "", scenario)
 
-			tasks, err := GetAllTasks()
+			tasks, err := getAllTasks()
 			if err != scenario.ScenarioErr {
 				t.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 			} else if mock.ExpectationsWereMet() != nil {
@@ -71,7 +71,7 @@ func TestCreateTask(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			testUtils.GetRepositoryMocks(testUtils.CreateTaskKey, mock, expectedSQL, "", scenario)
 
-			insertId, err := CreateTask(scenario.Task)
+			insertId, err := createTask(scenario.Task)
 			if err != scenario.ScenarioErr {
 				t.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 			} else if mock.ExpectationsWereMet() != nil {
@@ -92,7 +92,7 @@ func TestUpdateTask(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			testUtils.GetRepositoryMocks(testUtils.UpdateTaskKey, mock, expectedSQL, scenario.Id, scenario)
 
-			err := UpdateTask(scenario.Task, "8")
+			err := updateTask(scenario.Task, "8")
 			if err != scenario.ScenarioErr {
 				t.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 			} else if mock.ExpectationsWereMet() != nil {
@@ -112,7 +112,7 @@ func TestDeleteTask(t *testing.T) {
 		t.Run(scenario.Name, func(t *testing.T) {
 			testUtils.GetRepositoryMocks(testUtils.DeleteTaskKey, mock, expectedSQL, id, scenario)
 
-			rowsAffected, err := DeleteTask(id)
+			rowsAffected, err := deleteTask(id)
 			if err != scenario.ScenarioErr {
 				t.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 			} else if mock.ExpectationsWereMet() != nil {

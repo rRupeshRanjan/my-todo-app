@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"log"
 	"my-todo-app/config"
@@ -13,6 +14,11 @@ func main() {
 	app.Use(logger.New(logger.Config{
 		Format: config.FiberLogFormat,
 		Output: config.LogFile,
+	}))
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3000",
+		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 
 	registerRoutes(app)

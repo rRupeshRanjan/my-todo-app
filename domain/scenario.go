@@ -11,6 +11,10 @@ type Scenario struct {
 	Id            string
 	Data          []byte
 	ExpectedTasks []Task
+	ExpectedSQL   string
+	Page          int64
+	PerPage       int64
 	Rows          *sqlmock.Rows
 	Task          Task
+	Url           string
 }

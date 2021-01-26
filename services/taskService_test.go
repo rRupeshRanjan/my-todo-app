@@ -83,14 +83,14 @@ func TestGetAllTasksHandler(t *testing.T) {
 	t.Parallel()
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetAllTasksKey)
 
-	testApp.Get("/expectedTasks", func(c *fiber.Ctx) error {
+	testApp.Get("/tasks", func(c *fiber.Ctx) error {
 		return GetAllTasksHandler(c)
 	})
 
-	request := httptest.NewRequest("GET", "http://localhost.com/expectedTasks", nil)
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 
+			request := httptest.NewRequest("GET", scenario.Url, nil)
 			taskRepositoryGetAllTasksMock = func(page int64, perPage int64) ([]domain.Task, error) {
 				return scenario.ExpectedTasks, scenario.ScenarioErr
 			}
@@ -166,13 +166,13 @@ func TestSearchHandler(t *testing.T) {
 	t.Parallel()
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.SearchTaskKey)
 
-	testApp.Get("/expectedTasks/search", func(c *fiber.Ctx) error {
+	testApp.Get("/tasks/search", func(c *fiber.Ctx) error {
 		return SearchHandler(c)
 	})
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request := httptest.NewRequest("GET", "http://localhost.com/expectedTasks/search", nil)
+			request := httptest.NewRequest("GET", "http://localhost.com/tasks/search", nil)
 			response, _ := testApp.Test(request)
 			compareResponses(t, scenario.StatusCode, nil, response)
 		})
@@ -183,13 +183,13 @@ func TestUpdateBulkTaskHandler(t *testing.T) {
 	t.Parallel()
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.BulkUpdateTaskKey)
 
-	testApp.Put("/expectedTasks/bulk-action", func(c *fiber.Ctx) error {
+	testApp.Put("/tasks/bulk-action", func(c *fiber.Ctx) error {
 		return UpdateBulkTaskHandler(c)
 	})
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request := httptest.NewRequest("PUT", "http://localhost.com/expectedTasks/bulk-action", nil)
+			request := httptest.NewRequest("PUT", "http://localhost.com/tasks/bulk-action", nil)
 			response, _ := testApp.Test(request)
 			compareResponses(t, scenario.StatusCode, nil, response)
 		})

@@ -40,38 +40,44 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 	case GetAllTasksKey:
 		return []domain.Scenario{
 			{
-				Name: "should get all tasks",
+				Name: "should get all tasks with page number",
 				ExpectedTasks: []domain.Task{
-					{
-						Id:          8,
-						AddedOn:     1,
-						DueBy:       1,
-						Title:       "sample",
-						Description: "sample",
-						Status:      "sample",
-					},
-					{
-						Id:          88,
-						AddedOn:     1,
-						DueBy:       1,
-						Title:       "sample",
-						Description: "sample",
-						Status:      "sample",
-					},
+					{Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample"},
+					{Id: 88, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample"},
 				},
+				Page:        1,
+				PerPage:     5,
+				ExpectedSQL: "SELECT (.+) FROM tasks LIMIT \\? OFFSET \\?",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 1, 1, "sample").
 					AddRow(88, "sample", "sample", 1, 1, "sample"),
 			},
 			{
+				Name: "should get all tasks with -1 page",
+				ExpectedTasks: []domain.Task{
+					{Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample"},
+				},
+				Page:        -1,
+				PerPage:     1,
+				ExpectedSQL: "SELECT (.+) FROM tasks ",
+				Rows: sqlmock.NewRows(columns).
+					AddRow(8, "sample", "sample", 1, 1, "sample"),
+			},
+			{
 				Name:          "should get no tasks",
 				ExpectedTasks: []domain.Task{},
+				Page:          1,
+				PerPage:       5,
+				ExpectedSQL:   "SELECT (.+) FROM tasks LIMIT \\? OFFSET \\?",
 				Rows:          sqlmock.NewRows(columns),
 			},
 			{
 				Name:          "should rollback tx for errors",
 				ExpectedTasks: []domain.Task{},
+				Page:          1,
+				PerPage:       5,
 				ScenarioErr:   errors.New("error occurred"),
+				ExpectedSQL:   "SELECT (.+) FROM tasks LIMIT \\? OFFSET \\?",
 				Rows:          sqlmock.NewRows(columns),
 			},
 		}
@@ -80,22 +86,14 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 			{
 				Name: "should create task with Id 8",
 				Task: domain.Task{
-					AddedOn:     1,
-					DueBy:       1,
-					Title:       "sample",
-					Description: "sample",
-					Status:      "sample",
+					AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample",
 				},
 				InsertId: 8,
 			},
 			{
 				Name: "should rollback tx for errors",
 				Task: domain.Task{
-					AddedOn:     1,
-					DueBy:       1,
-					Title:       "sample",
-					Description: "sample",
-					Status:      "sample",
+					AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample",
 				},
 				InsertId:    -1,
 				ScenarioErr: errors.New("error occurred"),
@@ -106,24 +104,14 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 			{
 				Name: "should update task with 8",
 				Task: domain.Task{
-					Id:          8,
-					AddedOn:     1,
-					DueBy:       1,
-					Title:       "sample",
-					Description: "sample",
-					Status:      "sample",
+					Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample",
 				},
 				Id: "8",
 			},
 			{
 				Name: "should rollback tx for errors",
 				Task: domain.Task{
-					Id:          8,
-					AddedOn:     1,
-					DueBy:       1,
-					Title:       "sample",
-					Description: "sample",
-					Status:      "sample",
+					Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample",
 				},
 				Id:          "8",
 				ScenarioErr: errors.New("error occurred"),
@@ -184,32 +172,24 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 				Name: "should successfully get all expectedTasks",
 				ExpectedTasks: []domain.Task{
 					{
-						Id:          8,
-						AddedOn:     123456789,
-						DueBy:       123456789,
-						Title:       "sample title",
-						Description: "sample description",
-						Status:      "sample status",
-					},
-					{
-						Id:          9,
-						AddedOn:     12345678,
-						DueBy:       12345678,
-						Title:       "sample title 2",
-						Description: "sample description 2",
-						Status:      "sample status 2",
+						Id:      8,
+						AddedOn: 123456789,
+						DueBy:   123456789, Title: "sample title", Description: "sample description", Status: "sample status",
 					}},
+				Url:        "http://localhost.com/tasks?page=1&perPage=1",
 				StatusCode: http.StatusOK,
 			},
 			{
 				Name:          "should give zero expectedTasks with status code 200",
 				ExpectedTasks: []domain.Task{},
+				Url:           "http://localhost.com/tasks",
 				StatusCode:    http.StatusOK,
 			},
 			{
 				Name:          "should give 500 for get task by id for database errors",
 				ExpectedTasks: []domain.Task{},
 				ScenarioErr:   errors.New("error while fetching Data"),
+				Url:           "http://localhost.com/tasks",
 				StatusCode:    http.StatusInternalServerError,
 			},
 		}
@@ -232,12 +212,7 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 			{
 				Name: "should create task overriding the id from request body",
 				Task: domain.Task{
-					Id:          1,
-					AddedOn:     123,
-					DueBy:       123,
-					Title:       "sample",
-					Description: "sample",
-					Status:      "sample",
+					Id: 1, AddedOn: 123, DueBy: 123, Title: "sample", Description: "sample", Status: "sample",
 				},
 				Data:        []byte(`{"id": 8, "added_on": 123, "due_by": 123, "title": "sample", "description": "sample", "status": "sample"}`),
 				StatusCode:  http.StatusOK,
@@ -261,12 +236,7 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 			{
 				Name: "should successfully update a task",
 				Task: domain.Task{
-					Id:          1,
-					AddedOn:     123,
-					DueBy:       123,
-					Title:       "sample",
-					Description: "sample",
-					Status:      "sample",
+					Id: 1, AddedOn: 123, DueBy: 123, Title: "sample", Description: "sample", Status: "sample",
 				},
 				Data:        []byte(`{"id": 1, "added_on": 123, "due_by": 123, "title": "sample", "description": "sample", "status": "sample"}`),
 				StatusCode:  http.StatusOK,

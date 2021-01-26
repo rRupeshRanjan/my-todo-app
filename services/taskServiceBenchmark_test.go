@@ -41,7 +41,7 @@ func BenchmarkGetTaskByIdHandler(b *testing.B) {
 func BenchmarkGetAllTasksHandler(b *testing.B) {
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetAllTasksKey)
 
-	testApp.Get("/expectedTasks", func(c *fiber.Ctx) error {
+	testApp.Get("/tasks", func(c *fiber.Ctx) error {
 		return GetAllTasksHandler(c)
 	})
 
@@ -50,7 +50,7 @@ func BenchmarkGetAllTasksHandler(b *testing.B) {
 			taskRepositoryGetAllTasksMock = func(page int64, perPage int64) ([]domain.Task, error) {
 				return scenario.ExpectedTasks, scenario.ScenarioErr
 			}
-			request := httptest.NewRequest("GET", "http://localhost.com/expectedTasks", nil)
+			request := httptest.NewRequest("GET", scenario.Url, nil)
 
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
@@ -136,13 +136,13 @@ func BenchmarkDeleteTaskByIdHandler(b *testing.B) {
 func BenchmarkSearchHandler(b *testing.B) {
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.SearchTaskKey)
 
-	testApp.Get("/expectedTasks/search", func(c *fiber.Ctx) error {
+	testApp.Get("/tasks/search", func(c *fiber.Ctx) error {
 		return SearchHandler(c)
 	})
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
-			request := httptest.NewRequest("GET", "http://localhost.com/expectedTasks/search", nil)
+			request := httptest.NewRequest("GET", "http://localhost.com/tasks/search", nil)
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
 				response, _ := testApp.Test(request)
@@ -156,13 +156,13 @@ func BenchmarkSearchHandler(b *testing.B) {
 func BenchmarkUpdateBulkTaskHandler(b *testing.B) {
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.BulkUpdateTaskKey)
 
-	testApp.Put("/expectedTasks/bulk-action", func(c *fiber.Ctx) error {
+	testApp.Put("/tasks/bulk-action", func(c *fiber.Ctx) error {
 		return UpdateBulkTaskHandler(c)
 	})
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
-			request := httptest.NewRequest("PUT", "http://localhost.com/expectedTasks/bulk-action", nil)
+			request := httptest.NewRequest("PUT", "http://localhost.com/tasks/bulk-action", nil)
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
 				response, _ := testApp.Test(request)

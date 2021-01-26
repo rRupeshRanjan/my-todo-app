@@ -38,15 +38,14 @@ func BenchmarkGetTaskById(b *testing.B) {
 
 func BenchmarkGetAllTasks(b *testing.B) {
 	scenarios := testUtils.GetRepositoryTestScenarios(testUtils.GetAllTasksKey)
-	expectedSQL := "SELECT (.+) FROM tasks"
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
-				testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, expectedSQL, "", scenario)
+				testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, scenario.ExpectedSQL, "", scenario)
 
-				_, err := getAllTasks(0, 10)
+				_, err := getAllTasks(scenario.Page, scenario.PerPage)
 				if err != scenario.ScenarioErr {
 					b.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 				}

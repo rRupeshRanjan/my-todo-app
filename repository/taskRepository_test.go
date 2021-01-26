@@ -45,13 +45,12 @@ func TestGetTaskById(t *testing.T) {
 
 func TestGetAllTasks(t *testing.T) {
 	scenarios := testUtils.GetRepositoryTestScenarios(testUtils.GetAllTasksKey)
-	expectedSQL := "SELECT (.+) FROM tasks"
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, expectedSQL, "", scenario)
+			testUtils.GetRepositoryMocks(testUtils.GetAllTasksKey, mock, scenario.ExpectedSQL, "", scenario)
 
-			tasks, err := getAllTasks(0, 10)
+			tasks, err := getAllTasks(scenario.Page, scenario.PerPage)
 			if err != scenario.ScenarioErr {
 				t.Errorf("Expected error: %s, but got: %s", scenario.ScenarioErr, err)
 			} else if mock.ExpectationsWereMet() != nil {

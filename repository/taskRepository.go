@@ -16,12 +16,13 @@ var (
 )
 
 const (
-	getByIdQuery = "SELECT * FROM tasks WHERE id=?"
-	getAllQuery  = "SELECT * FROM tasks LIMIT ? OFFSET ?"
-	createQuery  = "INSERT INTO tasks (title, description, addedOn, dueBy, status) VALUES (?,?,?,?,?)"
-	updateQuery  = "UPDATE tasks SET title=?, description=?, addedOn=?, dueBy=?, status=? WHERE id=?"
-	deleteQuery  = "DELETE FROM tasks WHERE id=?"
-	initDbQuery  = `CREATE TABLE IF NOT EXISTS tasks (
+	getByIdQuery            = "SELECT * FROM tasks WHERE id=?"
+	getAllByPaginationQuery = "SELECT * FROM tasks LIMIT ? OFFSET ?"
+	getAllQuery             = "SELECT * FROM tasks"
+	createQuery             = "INSERT INTO tasks (title, description, addedOn, dueBy, status) VALUES (?,?,?,?,?)"
+	updateQuery             = "UPDATE tasks SET title=?, description=?, addedOn=?, dueBy=?, status=? WHERE id=?"
+	deleteQuery             = "DELETE FROM tasks WHERE id=?"
+	initDbQuery             = `CREATE TABLE IF NOT EXISTS tasks (
 						id INT PRIMARY KEY NOT NULL AUTO_INCREMENT, 
 						title TEXT NOT NULL, 
 						description TEXT NOT NULL, 
@@ -114,8 +115,14 @@ func getAllTasks(page int64, perPage int64) ([]domain.Task, error) {
 		}
 	}()
 
-	rows, err := tx.Query(getAllQuery, perPage, page*perPage)
+	var rows *sql.Rows
 	tasks := []domain.Task{}
+
+	if page == -1 || perPage == -1 {
+		rows, err = tx.Query(getAllQuery)
+	} else {
+		rows, err = tx.Query(getAllByPaginationQuery, perPage, page*perPage)
+	}
 
 	for err == nil && rows.Next() {
 		var task domain.Task

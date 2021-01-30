@@ -7,24 +7,23 @@ import (
 	"go.uber.org/zap"
 	"my-todo-app/config"
 	"my-todo-app/domain"
-	"my-todo-app/repository"
 	"net/http"
 	"strconv"
 )
 
 var (
-	taskRepository repository.TaskRepositoryInterface
+	taskRepository TaskRepositoryInterface
 	logger         *zap.Logger
 )
 
 func init() {
-	taskRepository = repository.TaskRepository{}
+	taskRepository = TaskRepository{}
 	logger = config.AppLogger
 }
 
 func GetTaskByIdHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
-	task, err := taskRepository.GetTaskById(id)
+	task, err := taskRepository.getTaskById(id)
 	if err == nil {
 		if len(task) == 0 {
 			logger.Info(fmt.Sprintf("No task found with id: %s", id))
@@ -38,22 +37,16 @@ func GetTaskByIdHandler(c *fiber.Ctx) error {
 }
 
 func GetAllTasksHandler(c *fiber.Ctx) error {
-	page, err := strconv.ParseInt(c.Query("page"), 10, 64)
-	if err != nil {
-		page = 0
-	}
-	perPage, err := strconv.ParseInt(c.Query("perPage"), 10, 64)
-	if err != nil {
-		perPage = 10
-	}
+	page, _ := strconv.ParseInt(c.Query("page", "0"), 10, 64)
+	perPage, _ := strconv.ParseInt(c.Query("perPage", "10"), 10, 64)
 
-	tasks, err := taskRepository.GetAllTasks(page, perPage)
+	tasks, err := taskRepository.getAllTasks(page, perPage)
 	if err == nil {
-		logger.Info(fmt.Sprintf("No. of expectedTasks fetched: %d", len(tasks)))
+		logger.Info(fmt.Sprintf("No. of tasks fetched: %d", len(tasks)))
 		return c.JSON(tasks)
 	}
 
-	logger.Error(fmt.Sprintf("Error fetching all expectedTasks: %s", err))
+	logger.Error(fmt.Sprintf("Error fetching tasks: %s", err))
 	return c.SendStatus(http.StatusInternalServerError)
 }
 
@@ -65,7 +58,7 @@ func CreateTaskHandler(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	createdId, err := taskRepository.CreateTask(task)
+	createdId, err := taskRepository.createTask(task)
 	if err == nil {
 		task.Id = createdId
 		return c.JSON(task)
@@ -85,7 +78,7 @@ func UpdateTaskByIdHandler(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	err = taskRepository.UpdateTask(task, id)
+	err = taskRepository.updateTask(task, id)
 	if err == nil {
 		return c.JSON(task)
 	}
@@ -96,7 +89,7 @@ func UpdateTaskByIdHandler(c *fiber.Ctx) error {
 
 func DeleteTaskByIdHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
-	rowsAffected, err := taskRepository.DeleteTask(id)
+	rowsAffected, err := taskRepository.deleteTask(id)
 	if err == nil {
 		if rowsAffected == 0 {
 			logger.Info(fmt.Sprintf("No task found with id: %s for deletion", id))
@@ -110,12 +103,35 @@ func DeleteTaskByIdHandler(c *fiber.Ctx) error {
 	return c.SendStatus(http.StatusInternalServerError)
 }
 
-// TODO: Implement this
 func SearchHandler(c *fiber.Ctx) error {
-	return c.Status(http.StatusNotImplemented).SendString("Not yet implemented")
+	params := buildQueryParams(c)
+	tasks, err := taskRepository.searchTasks(params)
+	if err == nil {
+		logger.Info(fmt.Sprintf("No. of teasks fetched: %d", len(tasks)))
+		return c.JSON(tasks)
+	}
+
+	logger.Error(fmt.Sprintf("Error searching tasks: %s", err))
+	return c.SendStatus(http.StatusInternalServerError)
 }
 
-// TODO: Implement this
-func UpdateBulkTaskHandler(c *fiber.Ctx) error {
-	return c.Status(http.StatusNotImplemented).SendString("Not yet implemented")
+func buildQueryParams(c *fiber.Ctx) map[string]string {
+	var params = map[string]string{
+		"page":        c.Query("page", "0"),
+		"perPage":     c.Query("perPage", "10"),
+		"dueByFrom":   c.Query("dueByFrom", "-1"),
+		"dueByTo":     c.Query("dueByTo", "9999999999999"),
+		"addedOnFrom": c.Query("addedOnFrom", "-1"),
+		"addedOnTo":   c.Query("addedOnTo", "9999999999999"),
+	}
+
+	id := c.Query("id")
+	if id != "" {
+		params["id"] = id
+	}
+	status := c.Query("status")
+	if status != "" {
+		params["status"] = status
+	}
+	return params
 }

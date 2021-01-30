@@ -23,11 +23,11 @@ This REST API can further be integrated with a UI (coming up) for better visuali
     - scenario.go
 - services
     - taskService.go
+    - taskRepositoryInterface.go
     - taskService_test.go
     - taskServiceBenchmark_test.go
 - repository
     - taskRepository.go
-    - taskRepositoryInterface.go
     - taskRepository_test.go
     - taskRepositoryBenchmark_test.go
 - main.go

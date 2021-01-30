@@ -2,10 +2,13 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 	"my-todo-app/config"
 	"my-todo-app/domain"
+	"strconv"
+	"strings"
 )
 
 var (
@@ -74,7 +77,7 @@ func setDb(database *sql.DB) {
 	db = database
 }
 
-func getTaskById(id string) ([]domain.Task, error) {
+func GetTaskById(id string) ([]domain.Task, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -101,7 +104,7 @@ func getTaskById(id string) ([]domain.Task, error) {
 	return tasks, err
 }
 
-func getAllTasks(page int64, perPage int64) ([]domain.Task, error) {
+func GetAllTasks(page int64, perPage int64) ([]domain.Task, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -134,7 +137,7 @@ func getAllTasks(page int64, perPage int64) ([]domain.Task, error) {
 	return tasks, err
 }
 
-func createTask(task domain.Task) (int64, error) {
+func CreateTask(task domain.Task) (int64, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return -1, err
@@ -155,7 +158,7 @@ func createTask(task domain.Task) (int64, error) {
 	return -1, err
 }
 
-func updateTask(task domain.Task, id string) error {
+func UpdateTask(task domain.Task, id string) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -173,7 +176,7 @@ func updateTask(task domain.Task, id string) error {
 	return err
 }
 
-func deleteTask(id string) (int64, error) {
+func DeleteTask(id string) (int64, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return 0, err
@@ -195,7 +198,70 @@ func deleteTask(id string) (int64, error) {
 	return 0, err
 }
 
-// TODO:: Implement this
-func searchTasks(params map[string]string) ([]domain.Task, error) {
-	return []domain.Task{}, nil
+func SearchTasks(params map[string]string) ([]domain.Task, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		switch err {
+		case nil:
+			tx.Commit()
+		default:
+			tx.Rollback()
+		}
+	}()
+
+	var rows *sql.Rows
+	tasks := []domain.Task{}
+
+	query := getSearchQuery(params)
+	rows, err = tx.Query(query)
+
+	for err == nil && rows.Next() {
+		var task domain.Task
+		err = rows.Scan(&task.Id, &task.Title, &task.Description, &task.AddedOn, &task.DueBy, &task.Status)
+		if err == nil {
+			tasks = append(tasks, task)
+		}
+	}
+	return tasks, err
+}
+
+func getSearchQuery(params map[string]string) string {
+	page, _ := strconv.ParseInt(params["page"], 10, 64)
+	perPage, _ := strconv.ParseInt(params["perPage"], 10, 64)
+
+	additionalQuery := strings.Builder{}
+	for key, value := range params {
+		switch key {
+		case "id":
+			additionalQuery.WriteString(fmt.Sprintf("id = %s AND ", value))
+		case "addedOnFrom":
+			additionalQuery.WriteString(fmt.Sprintf("addedOn >= %s AND ", value))
+		case "addedOnTo":
+			additionalQuery.WriteString(fmt.Sprintf("addedOn <= %s AND ", value))
+		case "dueByFrom":
+			additionalQuery.WriteString(fmt.Sprintf("dueBy >= %s AND ", value))
+		case "dueByTo":
+			additionalQuery.WriteString(fmt.Sprintf("dueBy <= %s AND ", value))
+		case "status":
+			additionalQuery.WriteString(fmt.Sprintf("status = \"%s\" AND ", value))
+		}
+	}
+
+	baseQuery := strings.Builder{}
+	baseQuery.WriteString(getAllQuery)
+
+	if len(additionalQuery.String()) > 0 {
+		baseQuery.WriteString(" WHERE ")
+		baseQuery.WriteString(additionalQuery.String())
+	}
+
+	query := baseQuery.String()
+	query = query[:len(query)-4]
+	query += fmt.Sprintf(" LIMIT %d OFFSET %d", perPage, page*perPage)
+
+	println(query)
+	return query
 }

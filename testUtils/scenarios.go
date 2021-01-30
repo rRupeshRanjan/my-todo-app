@@ -169,7 +169,7 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 	case GetAllTasksKey:
 		return []domain.Scenario{
 			{
-				Name: "should successfully get all expectedTasks",
+				Name: "should successfully get all tasks",
 				ExpectedTasks: []domain.Task{
 					{
 						Id:      8,
@@ -180,7 +180,7 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 				StatusCode: http.StatusOK,
 			},
 			{
-				Name:          "should give zero expectedTasks with status code 200",
+				Name:          "should give zero tasks with status code 200",
 				ExpectedTasks: []domain.Task{},
 				Url:           "http://localhost.com/tasks",
 				StatusCode:    http.StatusOK,
@@ -282,13 +282,6 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 			},
 		}
 	case SearchTaskKey:
-		return []domain.Scenario{
-			{
-				Name:       "should throw 501",
-				StatusCode: http.StatusNotImplemented,
-			},
-		}
-	case BulkUpdateTaskKey:
 		return []domain.Scenario{
 			{
 				Name:       "should throw 501",

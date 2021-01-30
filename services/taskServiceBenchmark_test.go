@@ -153,26 +153,6 @@ func BenchmarkSearchHandler(b *testing.B) {
 	}
 }
 
-func BenchmarkUpdateBulkTaskHandler(b *testing.B) {
-	scenarios := testUtils.GetServiceTestScenarios(testUtils.BulkUpdateTaskKey)
-
-	testApp.Put("/tasks/bulk-action", func(c *fiber.Ctx) error {
-		return UpdateBulkTaskHandler(c)
-	})
-
-	for _, scenario := range scenarios {
-		b.Run(scenario.Name, func(b *testing.B) {
-			request := httptest.NewRequest("PUT", "http://localhost.com/tasks/bulk-action", nil)
-			b.StartTimer()
-			for i := 0; i < b.N; i++ {
-				response, _ := testApp.Test(request)
-				compareStatusCodes(b, response, scenario)
-			}
-			b.StopTimer()
-		})
-	}
-}
-
 func compareStatusCodes(b *testing.B, response *http.Response, s domain.Scenario) {
 	if response.StatusCode != s.StatusCode {
 		b.Fatalf("Expected status code: %d, instead got: %d", s.StatusCode, response.StatusCode)

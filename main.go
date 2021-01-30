@@ -35,6 +35,5 @@ func registerRoutes(app *fiber.App) {
 	app.Get("/tasks/search", services.SearchHandler)
 	app.Post("/task", services.CreateTaskHandler)
 	app.Put("/task/:id", services.UpdateTaskByIdHandler)
-	app.Put("/tasks/bulk-action", services.UpdateBulkTaskHandler)
 	app.Delete("/task/:id", services.DeleteTaskByIdHandler)
 }

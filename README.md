@@ -35,3 +35,9 @@ This REST API can further be integrated with a UI (coming up) for better visuali
 
 #### TODO
 1. Pass config file path from command line instead of hard-coding
+
+#### Testing mechanisms:
+1. **Run all tests**: _go test ./..._
+2. **Run all tests with % coverage**: _go test -covermode count ./..._
+3. **Run tests with coverage output to txt file**: _go test -coverprofile cover.txt ./..._
+4. **Convert txt file to html**: _go tool cover -html cover.txt_

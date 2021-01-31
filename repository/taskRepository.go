@@ -61,9 +61,9 @@ func initializeTable() {
 	defer func() {
 		switch err {
 		case nil:
-			tx.Commit()
+			_ = tx.Commit()
 		default:
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -85,9 +85,9 @@ func GetTaskById(id string) ([]domain.Task, error) {
 	defer func() {
 		switch err {
 		case nil:
-			tx.Commit()
+			_ = tx.Commit()
 		default:
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -112,9 +112,9 @@ func GetAllTasks(page int64, perPage int64) ([]domain.Task, error) {
 	defer func() {
 		switch err {
 		case nil:
-			tx.Commit()
+			_ = tx.Commit()
 		default:
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -145,9 +145,9 @@ func CreateTask(task domain.Task) (int64, error) {
 	defer func() {
 		switch err {
 		case nil:
-			tx.Commit()
+			_ = tx.Commit()
 		default:
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -166,9 +166,9 @@ func UpdateTask(task domain.Task, id string) error {
 	defer func() {
 		switch err {
 		case nil:
-			tx.Commit()
+			_ = tx.Commit()
 		default:
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -184,9 +184,9 @@ func DeleteTask(id string) (int64, error) {
 	defer func() {
 		switch err {
 		case nil:
-			tx.Commit()
+			_ = tx.Commit()
 		default:
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -206,9 +206,9 @@ func SearchTasks(params map[string]string) ([]domain.Task, error) {
 	defer func() {
 		switch err {
 		case nil:
-			tx.Commit()
+			_ = tx.Commit()
 		default:
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -216,6 +216,7 @@ func SearchTasks(params map[string]string) ([]domain.Task, error) {
 	tasks := []domain.Task{}
 
 	query := getSearchQuery(params)
+	logger.Info(fmt.Sprintf("Executing query: %s", query))
 	rows, err = tx.Query(query)
 
 	for err == nil && rows.Next() {
@@ -229,8 +230,8 @@ func SearchTasks(params map[string]string) ([]domain.Task, error) {
 }
 
 func getSearchQuery(params map[string]string) string {
-	page, _ := strconv.ParseInt(params["page"], 10, 64)
-	perPage, _ := strconv.ParseInt(params["perPage"], 10, 64)
+	page := getPageNumber(params["page"])
+	perPage := getPerPage(params["perPage"])
 
 	additionalQuery := strings.Builder{}
 	for key, value := range params {
@@ -259,9 +260,26 @@ func getSearchQuery(params map[string]string) string {
 	}
 
 	query := baseQuery.String()
-	query = query[:len(query)-4]
+	if len(additionalQuery.String()) > 0 {
+		query = query[:len(query)-4]
+	}
 	query += fmt.Sprintf(" LIMIT %d OFFSET %d", perPage, page*perPage)
 
-	println(query)
 	return query
+}
+
+func getPerPage(perPageString string) int64 {
+	perPage, err := strconv.ParseInt(perPageString, 10, 64)
+	if err != nil || perPage <= 0 {
+		perPage = 10
+	}
+	return perPage
+}
+
+func getPageNumber(pageString string) int64 {
+	page, err := strconv.ParseInt(pageString, 10, 64)
+	if err != nil || page < 0 {
+		page = 0
+	}
+	return page
 }

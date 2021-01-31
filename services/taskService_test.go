@@ -9,6 +9,7 @@ import (
 	"my-todo-app/testUtils"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -49,12 +50,9 @@ func (t taskRepositoryMock) searchTasks(params map[string]string) ([]domain.Task
 	return taskRepositorySearchTasksMock(params)
 }
 
-func TestSetup(t *testing.T) {
-	taskRepository = taskRepositoryMock{}
-}
-
 func TestGetTaskByIdHandler(t *testing.T) {
 	t.Parallel()
+	taskRepository = taskRepositoryMock{}
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetTaskByIdKey)
 
 	testApp.Get("/task/:id", func(c *fiber.Ctx) error {
@@ -81,6 +79,7 @@ func TestGetTaskByIdHandler(t *testing.T) {
 
 func TestGetAllTasksHandler(t *testing.T) {
 	t.Parallel()
+	taskRepository = taskRepositoryMock{}
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetAllTasksKey)
 
 	testApp.Get("/tasks", func(c *fiber.Ctx) error {
@@ -103,7 +102,9 @@ func TestGetAllTasksHandler(t *testing.T) {
 
 func TestCreateTaskHandler(t *testing.T) {
 	t.Parallel()
+	taskRepository = taskRepositoryMock{}
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.CreateTaskKey)
+
 	testApp.Post("/task", func(c *fiber.Ctx) error {
 		return CreateTaskHandler(c)
 	})
@@ -124,6 +125,7 @@ func TestCreateTaskHandler(t *testing.T) {
 
 func TestUpdateTaskByIdHandler(t *testing.T) {
 	t.Parallel()
+	taskRepository = taskRepositoryMock{}
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.UpdateTaskKey)
 
 	testApp.Put("/task/:id", func(c *fiber.Ctx) error {
@@ -146,7 +148,9 @@ func TestUpdateTaskByIdHandler(t *testing.T) {
 
 func TestDeleteTaskByIdHandler(t *testing.T) {
 	t.Parallel()
+	taskRepository = taskRepositoryMock{}
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.DeleteTaskKey)
+
 	testApp.Delete("/task/:id", func(c *fiber.Ctx) error {
 		return DeleteTaskByIdHandler(c)
 	})
@@ -162,8 +166,9 @@ func TestDeleteTaskByIdHandler(t *testing.T) {
 	}
 }
 
-func _TestSearchHandler(t *testing.T) {
+func TestSearchHandler(t *testing.T) {
 	t.Parallel()
+	taskRepository = taskRepositoryMock{}
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.SearchTaskKey)
 
 	testApp.Get("/tasks/search", func(c *fiber.Ctx) error {
@@ -172,10 +177,78 @@ func _TestSearchHandler(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			request := httptest.NewRequest("GET", "http://localhost.com/tasks/search", nil)
+			request := httptest.NewRequest("GET", scenario.Url, nil)
+			taskRepositorySearchTasksMock = func(params map[string]string) ([]domain.Task, error) {
+				return scenario.ExpectedTasks, scenario.ScenarioErr
+			}
+
 			response, _ := testApp.Test(request)
-			compareResponses(t, scenario.StatusCode, nil, response)
+			compareResponses(t, scenario.StatusCode, scenario.ExpectedTasks, response)
 		})
+	}
+}
+
+func TestSingleParamBuildQueryParams(t *testing.T) {
+	t.Parallel()
+	scenarios := []domain.SearchParamScenario{
+		{
+			Name: "should add key-value pair to map",
+			Key:  "sample key", Value: "sample value", Exists: true,
+		},
+		{
+			Name: "should add id to map",
+			Key:  "id", Value: "123", Exists: true,
+		},
+		{
+			Name: "should not add id to map",
+			Key:  "id", Value: "", Exists: false,
+		},
+		{
+			Name: "should add status to map",
+			Key:  "status", Value: "done", Exists: true,
+		},
+		{
+			Name: "should not add status to map",
+			Key:  "status", Value: "", Exists: false,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			params := map[string]string{}
+			buildQueryParams(scenario.Key, scenario.Value, &params)
+
+			setValue, exists := params[scenario.Key]
+			if exists != scenario.Exists {
+				t.Errorf("Expected key: %s presence in map as: %t, instead got: %t", scenario.Key, scenario.Exists, exists)
+			} else if setValue != scenario.Value {
+				t.Errorf("Expected value: %s, instead got: %s", scenario.Value, setValue)
+			}
+		})
+	}
+}
+
+func TestMultiParamBuildQueryParams(t *testing.T) {
+	params := map[string]string{}
+	entries := []domain.SearchParamScenario{
+		{Key: "sample key 1", Value: "sample value 1"},
+		{Key: "sample key 2", Value: "sample value 2"},
+		{Key: "id", Value: ""},
+		{Key: "status", Value: "done"},
+	}
+
+	expectedMap := map[string]string{
+		"sample key 1": "sample value 1",
+		"sample key 2": "sample value 2",
+		"status":       "done",
+	}
+
+	for _, entry := range entries {
+		buildQueryParams(entry.Key, entry.Value, &params)
+	}
+
+	if !reflect.DeepEqual(params, expectedMap) {
+		t.Errorf("Expected and computed maps are not equal")
 	}
 }
 

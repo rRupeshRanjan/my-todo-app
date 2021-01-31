@@ -133,6 +133,101 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				RowsAffected: 0,
 			},
 		}
+	case SearchTaskKey:
+		return []domain.Scenario{
+			{
+				Name: "should get all tasks with id 8",
+				ExpectedTasks: []domain.Task{
+					{Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
+				},
+				SearchParams: map[string]string{"id": "8"},
+				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE id = 8 LIMIT 10 OFFSET 0",
+				Rows: sqlmock.NewRows(columns).
+					AddRow(8, "sample", "sample", 1, 1, "done"),
+			},
+			{
+				Name: "should get all tasks with addedOn before 10",
+				ExpectedTasks: []domain.Task{
+					{Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
+					{Id: 9, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
+				},
+				SearchParams: map[string]string{"addedOnTo": "10"},
+				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE addedOn <= 10 LIMIT 10 OFFSET 0",
+				Rows: sqlmock.NewRows(columns).
+					AddRow(8, "sample", "sample", 1, 1, "done").
+					AddRow(9, "sample", "sample", 1, 1, "done"),
+			},
+			{
+				Name: "should get all tasks with addedOn after 10",
+				ExpectedTasks: []domain.Task{
+					{Id: 8, AddedOn: 11, DueBy: 11, Title: "sample", Description: "sample", Status: "done"},
+					{Id: 9, AddedOn: 11, DueBy: 11, Title: "sample", Description: "sample", Status: "done"},
+				},
+				SearchParams: map[string]string{"addedOnFrom": "10"},
+				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE addedOn >= 10 LIMIT 10 OFFSET 0",
+				Rows: sqlmock.NewRows(columns).
+					AddRow(8, "sample", "sample", 11, 11, "done").
+					AddRow(9, "sample", "sample", 11, 11, "done"),
+			},
+			{
+				Name: "should get all tasks with dueBy before 10",
+				ExpectedTasks: []domain.Task{
+					{Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
+					{Id: 9, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
+				},
+				SearchParams: map[string]string{"dueByTo": "10"},
+				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE dueBy <= 10 LIMIT 10 OFFSET 0",
+				Rows: sqlmock.NewRows(columns).
+					AddRow(8, "sample", "sample", 1, 1, "done").
+					AddRow(9, "sample", "sample", 1, 1, "done"),
+			},
+			{
+				Name: "should get all tasks with dueBy after 10",
+				ExpectedTasks: []domain.Task{
+					{Id: 8, AddedOn: 11, DueBy: 11, Title: "sample", Description: "sample", Status: "done"},
+					{Id: 9, AddedOn: 11, DueBy: 11, Title: "sample", Description: "sample", Status: "done"},
+				},
+				SearchParams: map[string]string{"dueByFrom": "10"},
+				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE dueBy >= 10 LIMIT 10 OFFSET 0",
+				Rows: sqlmock.NewRows(columns).
+					AddRow(8, "sample", "sample", 11, 11, "done").
+					AddRow(9, "sample", "sample", 11, 11, "done"),
+			},
+			{
+				Name: "should get all tasks with status done",
+				ExpectedTasks: []domain.Task{
+					{Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
+					{Id: 9, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
+				},
+				SearchParams: map[string]string{"status": "done"},
+				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE status = \"done\" LIMIT 10 OFFSET 0",
+				Rows: sqlmock.NewRows(columns).
+					AddRow(8, "sample", "sample", 1, 1, "done").
+					AddRow(9, "sample", "sample", 1, 1, "done"),
+			},
+			{
+				Name:          "should get no tasks",
+				ExpectedTasks: []domain.Task{},
+				SearchParams:  map[string]string{"status": "unresolved"},
+				ExpectedSQL:   "SELECT (.+) FROM tasks WHERE status = \"unresolved\" LIMIT 10 OFFSET 0",
+				Rows:          sqlmock.NewRows(columns),
+			},
+			{
+				Name:          "should default page to 0 and perPage to 10 when garbage value provided",
+				ExpectedTasks: []domain.Task{},
+				SearchParams:  map[string]string{"page": "-1", "perPage": "the simpsons"},
+				ExpectedSQL:   "SELECT (.+) FROM tasks LIMIT 10 OFFSET 0",
+				Rows:          sqlmock.NewRows(columns),
+			},
+			{
+				Name:          "should rollback tx for errors",
+				ExpectedTasks: []domain.Task{},
+				SearchParams:  map[string]string{"page": "0"},
+				ScenarioErr:   errors.New("error occurred"),
+				ExpectedSQL:   "SELECT (.+) FROM tasks LIMIT 10 OFFSET 0",
+				Rows:          sqlmock.NewRows(columns),
+			},
+		}
 	default:
 		return []domain.Scenario{}
 	}
@@ -144,14 +239,9 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 		return []domain.Scenario{
 			{
 				Name: "should successfully get task by id",
-				ExpectedTasks: []domain.Task{{
-					Id:          8,
-					AddedOn:     123456789,
-					DueBy:       123456789,
-					Title:       "sample title",
-					Description: "sample description",
-					Status:      "sample status",
-				}},
+				ExpectedTasks: []domain.Task{
+					{Id: 8, AddedOn: 12345, DueBy: 12345, Title: "sample", Description: "sample", Status: "sample"},
+				},
 				StatusCode: http.StatusOK,
 			},
 			{
@@ -171,11 +261,8 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 			{
 				Name: "should successfully get all tasks",
 				ExpectedTasks: []domain.Task{
-					{
-						Id:      8,
-						AddedOn: 123456789,
-						DueBy:   123456789, Title: "sample title", Description: "sample description", Status: "sample status",
-					}},
+					{Id: 8, AddedOn: 12345, DueBy: 12345, Title: "sample", Description: "sample", Status: "sample"},
+				},
 				Url:        "http://localhost.com/tasks?page=1&perPage=1",
 				StatusCode: http.StatusOK,
 			},
@@ -198,12 +285,7 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 			{
 				Name: "should successfully create task",
 				Task: domain.Task{
-					Id:          1,
-					AddedOn:     123,
-					DueBy:       123,
-					Title:       "sample",
-					Description: "sample",
-					Status:      "sample",
+					Id: 1, AddedOn: 123, DueBy: 123, Title: "sample", Description: "sample", Status: "sample",
 				},
 				Data:        []byte(`{"added_on": 123, "due_by": 123, "title": "sample", "description": "sample", "status": "sample"}`),
 				StatusCode:  http.StatusOK,
@@ -220,7 +302,7 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 			},
 			{
 				Name:        "should throw 400 in create task for malformed body",
-				Data:        []byte(`{addedOn": 123456789, "due_by": 123456789, "title": "sample`),
+				Data:        []byte(`{addedOn": 12345, "due_by": 12345, "title": "sample`),
 				StatusCode:  http.StatusBadRequest,
 				ScenarioErr: nil,
 			},
@@ -284,8 +366,27 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 	case SearchTaskKey:
 		return []domain.Scenario{
 			{
-				Name:       "should throw 501",
-				StatusCode: http.StatusNotImplemented,
+				Name: "should search tasks successfully",
+				ExpectedTasks: []domain.Task{
+					{Id: 6, AddedOn: 12345, DueBy: 12345, Title: "sample 6", Description: "sample", Status: "done"},
+					{Id: 7, AddedOn: 12345, DueBy: 12345, Title: "sample 7", Description: "sample", Status: "done"},
+					{Id: 8, AddedOn: 12345, DueBy: 12345, Title: "sample 8", Description: "sample", Status: "done"},
+				},
+				Url:        "http://localhost.com/tasks/search?status=done",
+				StatusCode: http.StatusOK,
+			},
+			{
+				Name:          "should give zero tasks for search with status code 200",
+				ExpectedTasks: []domain.Task{},
+				Url:           "http://localhost.com/tasks/search?status=done",
+				StatusCode:    http.StatusOK,
+			},
+			{
+				Name:          "search should give 500 for search task for database errors",
+				ExpectedTasks: []domain.Task{},
+				ScenarioErr:   errors.New("error while fetching Data"),
+				Url:           "http://localhost.com/tasks/search?status=done",
+				StatusCode:    http.StatusInternalServerError,
 			},
 		}
 	default:

@@ -104,10 +104,14 @@ func DeleteTaskByIdHandler(c *fiber.Ctx) error {
 }
 
 func SearchHandler(c *fiber.Ctx) error {
-	params := buildQueryParams(c)
+	params := map[string]string{}
+	for key, value := range domain.SupportedSearchParams {
+		buildQueryParams(key, c.Query(key, value), &params)
+	}
+
 	tasks, err := taskRepository.searchTasks(params)
 	if err == nil {
-		logger.Info(fmt.Sprintf("No. of teasks fetched: %d", len(tasks)))
+		logger.Info(fmt.Sprintf("No. of tasks fetched: %d", len(tasks)))
 		return c.JSON(tasks)
 	}
 
@@ -115,23 +119,13 @@ func SearchHandler(c *fiber.Ctx) error {
 	return c.SendStatus(http.StatusInternalServerError)
 }
 
-func buildQueryParams(c *fiber.Ctx) map[string]string {
-	var params = map[string]string{
-		"page":        c.Query("page", "0"),
-		"perPage":     c.Query("perPage", "10"),
-		"dueByFrom":   c.Query("dueByFrom", "-1"),
-		"dueByTo":     c.Query("dueByTo", "9999999999999"),
-		"addedOnFrom": c.Query("addedOnFrom", "-1"),
-		"addedOnTo":   c.Query("addedOnTo", "9999999999999"),
+func buildQueryParams(key string, value string, params *map[string]string) {
+	switch key {
+	case "id", "status":
+		if value != "" {
+			(*params)[key] = value
+		}
+	default:
+		(*params)[key] = value
 	}
-
-	id := c.Query("id")
-	if id != "" {
-		params["id"] = id
-	}
-	status := c.Query("status")
-	if status != "" {
-		params["status"] = status
-	}
-	return params
 }

@@ -10,3 +10,14 @@ const (
 
 	PortSemicolon = ":"
 )
+
+var SupportedSearchParams = map[string]string{
+	"page":        "0",
+	"perPage":     "10",
+	"dueByFrom":   "-1",
+	"addedOnFrom": "-1",
+	"dueByTo":     "9999999999999",
+	"addedOnTo":   "9999999999999",
+	"id":          "",
+	"status":      "",
+}

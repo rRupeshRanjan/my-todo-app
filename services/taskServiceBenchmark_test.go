@@ -7,19 +7,22 @@ import (
 	"my-todo-app/testUtils"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
-func BenchmarkInit(b *testing.B) {
-	taskRepository = taskRepositoryMock{}
+func InitialSetup() {
 	testApp = fiber.New()
+	taskRepository = taskRepositoryMock{}
 }
 
 func BenchmarkGetTaskByIdHandler(b *testing.B) {
+	InitialSetup()
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetTaskByIdKey)
+
 	testApp.Get("/task/:id", func(c *fiber.Ctx) error {
 		return GetTaskByIdHandler(c)
 	})
-	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetTaskByIdKey)
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
@@ -39,6 +42,7 @@ func BenchmarkGetTaskByIdHandler(b *testing.B) {
 }
 
 func BenchmarkGetAllTasksHandler(b *testing.B) {
+	InitialSetup()
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.GetAllTasksKey)
 
 	testApp.Get("/tasks", func(c *fiber.Ctx) error {
@@ -63,7 +67,9 @@ func BenchmarkGetAllTasksHandler(b *testing.B) {
 }
 
 func BenchmarkCreateTaskHandler(b *testing.B) {
+	InitialSetup()
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.CreateTaskKey)
+
 	testApp.Post("/task", func(c *fiber.Ctx) error {
 		return CreateTaskHandler(c)
 	})
@@ -87,6 +93,7 @@ func BenchmarkCreateTaskHandler(b *testing.B) {
 }
 
 func BenchmarkUpdateTaskByIdHandler(b *testing.B) {
+	InitialSetup()
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.UpdateTaskKey)
 
 	testApp.Put("/task/:id", func(c *fiber.Ctx) error {
@@ -111,10 +118,12 @@ func BenchmarkUpdateTaskByIdHandler(b *testing.B) {
 }
 
 func BenchmarkDeleteTaskByIdHandler(b *testing.B) {
+	InitialSetup()
+	scenarios := testUtils.GetServiceTestScenarios(testUtils.DeleteTaskKey)
+
 	testApp.Delete("/task/:id", func(c *fiber.Ctx) error {
 		return DeleteTaskByIdHandler(c)
 	})
-	scenarios := testUtils.GetServiceTestScenarios(testUtils.DeleteTaskKey)
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
@@ -134,6 +143,7 @@ func BenchmarkDeleteTaskByIdHandler(b *testing.B) {
 }
 
 func BenchmarkSearchHandler(b *testing.B) {
+	InitialSetup()
 	scenarios := testUtils.GetServiceTestScenarios(testUtils.SearchTaskKey)
 
 	testApp.Get("/tasks/search", func(c *fiber.Ctx) error {
@@ -142,7 +152,11 @@ func BenchmarkSearchHandler(b *testing.B) {
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
-			request := httptest.NewRequest("GET", "http://localhost.com/tasks/search", nil)
+			request := httptest.NewRequest("GET", scenario.Url, nil)
+			taskRepositorySearchTasksMock = func(params map[string]string) ([]domain.Task, error) {
+				return scenario.ExpectedTasks, scenario.ScenarioErr
+			}
+
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
 				response, _ := testApp.Test(request)
@@ -151,6 +165,78 @@ func BenchmarkSearchHandler(b *testing.B) {
 			b.StopTimer()
 		})
 	}
+}
+
+func BenchmarkSingleParamBuildQueryParams(b *testing.B) {
+	scenarios := []domain.SearchParamScenario{
+		{
+			Name: "should add key-value pair to map",
+			Key:  "sample key", Value: "sample value", Exists: true,
+		},
+		{
+			Name: "should add id to map",
+			Key:  "id", Value: "123", Exists: true,
+		},
+		{
+			Name: "should not add id to map",
+			Key:  "id", Value: "", Exists: false,
+		},
+		{
+			Name: "should add status to map",
+			Key:  "status", Value: "done", Exists: true,
+		},
+		{
+			Name: "should not add status to map",
+			Key:  "status", Value: "", Exists: false,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		b.Run(scenario.Name, func(b *testing.B) {
+
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				params := map[string]string{}
+				buildQueryParams(scenario.Key, scenario.Value, &params)
+
+				setValue, exists := params[scenario.Key]
+				if exists != scenario.Exists {
+					b.Errorf("Expected key: %s presence in map as: %t, instead got: %t", scenario.Key, scenario.Exists, exists)
+				} else if setValue != scenario.Value {
+					b.Errorf("Expected value: %s, instead got: %s", scenario.Value, setValue)
+				}
+			}
+			b.StopTimer()
+		})
+	}
+}
+
+func BenchmarkMultiParamBuildQueryParams(b *testing.B) {
+	params := map[string]string{}
+	entries := []domain.SearchParamScenario{
+		{Key: "sample key 1", Value: "sample value 1"},
+		{Key: "sample key 2", Value: "sample value 2"},
+		{Key: "id", Value: ""},
+		{Key: "status", Value: "done"},
+	}
+
+	expectedMap := map[string]string{
+		"sample key 1": "sample value 1",
+		"sample key 2": "sample value 2",
+		"status":       "done",
+	}
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		for _, entry := range entries {
+			buildQueryParams(entry.Key, entry.Value, &params)
+		}
+
+		if !reflect.DeepEqual(params, expectedMap) {
+			b.Errorf("Expected and computed maps are not equal")
+		}
+	}
+	b.StopTimer()
 }
 
 func compareStatusCodes(b *testing.B, response *http.Response, s domain.Scenario) {

@@ -17,7 +17,7 @@ func GetRepositoryMocks(action string, mock sqlmock.Sqlmock, expectedSQL string,
 			WillReturnRows(scenario.Rows).
 			WillReturnError(scenario.ScenarioErr)
 
-	case GetAllTasksKey:
+	case GetAllTasksKey, SearchTaskKey:
 		mock.ExpectQuery(expectedSQL).
 			WillReturnRows(scenario.Rows).
 			WillReturnError(scenario.ScenarioErr)

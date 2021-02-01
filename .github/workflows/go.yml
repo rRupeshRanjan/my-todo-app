@@ -16,10 +16,16 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.15
+        go-version: 1.15.2
       
-    - name: Dependencies
-      run: go get github.com/gofiber/fiber/v2
+    - name: Install Dependencies
+      run: |
+        go version
+        go get -u github.com/gofiber/fiber/v2
+        go get -u github.com/DATA-DOG/go-sqlmock
+        go get -u github.com/go-sql-driver/mysql
+        go get -u github.com/spf13/viper
+        go get -u go.uber.org/zap
       
     - name: Build
       run: go build -v ./...

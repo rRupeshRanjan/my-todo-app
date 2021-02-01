@@ -20,7 +20,13 @@ var (
 )
 
 func init() {
-	viper.SetConfigFile("C:\\Users\\Rupesh\\Desktop\\workspace\\golang\\my-todo-app\\config.yml")
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.SetConfigType("yaml")
+
+	// Look for config file in one of below paths
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("..") // for tests only
+
 	viper.AutomaticEnv()
 
 	err := viper.ReadInConfig()

@@ -21,20 +21,23 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 					Description: "sample",
 					Status:      "sample",
 				}},
-				Id:   "8",
-				Rows: sqlmock.NewRows(columns).AddRow(8, "sample", "sample", 1, 1, "sample"),
+				Id:          "8",
+				Rows:        sqlmock.NewRows(columns).AddRow(8, "sample", "sample", 1, 1, "sample"),
+				ExpectedSQL: "SELECT * FROM tasks WHERE id = ?",
 			},
 			{
 				Name:          "should get no tasks",
 				ExpectedTasks: []domain.Task{},
 				Id:            "8",
 				Rows:          sqlmock.NewRows(columns),
+				ExpectedSQL:   "SELECT * FROM tasks WHERE id = ?",
 			},
 			{
 				Name:          "should rollback tx for errors",
 				ExpectedTasks: []domain.Task{},
 				ScenarioErr:   errors.New("error occurred"),
 				Rows:          sqlmock.NewRows(columns),
+				ExpectedSQL:   "SELECT * FROM tasks WHERE id = ?",
 			},
 		}
 	case GetAllTasksKey:
@@ -47,7 +50,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				},
 				Page:        1,
 				PerPage:     5,
-				ExpectedSQL: "SELECT (.+) FROM tasks LIMIT \\? OFFSET \\?",
+				ExpectedSQL: "SELECT * FROM tasks LIMIT 5 OFFSET 5",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 1, 1, "sample").
 					AddRow(88, "sample", "sample", 1, 1, "sample"),
@@ -59,7 +62,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				},
 				Page:        -1,
 				PerPage:     1,
-				ExpectedSQL: "SELECT (.+) FROM tasks ",
+				ExpectedSQL: "SELECT * FROM tasks",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 1, 1, "sample"),
 			},
@@ -68,7 +71,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				ExpectedTasks: []domain.Task{},
 				Page:          1,
 				PerPage:       5,
-				ExpectedSQL:   "SELECT (.+) FROM tasks LIMIT \\? OFFSET \\?",
+				ExpectedSQL:   "SELECT * FROM tasks LIMIT 5 OFFSET 5",
 				Rows:          sqlmock.NewRows(columns),
 			},
 			{
@@ -77,7 +80,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				Page:          1,
 				PerPage:       5,
 				ScenarioErr:   errors.New("error occurred"),
-				ExpectedSQL:   "SELECT (.+) FROM tasks LIMIT \\? OFFSET \\?",
+				ExpectedSQL:   "SELECT * FROM tasks LIMIT 5 OFFSET 5",
 				Rows:          sqlmock.NewRows(columns),
 			},
 		}
@@ -88,7 +91,8 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				Task: domain.Task{
 					AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample",
 				},
-				InsertId: 8,
+				InsertId:    8,
+				ExpectedSQL: "INSERT INTO tasks (title,description,addedOn,dueBy,status) VALUES (?,?,?,?,?)",
 			},
 			{
 				Name: "should rollback tx for errors",
@@ -97,6 +101,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				},
 				InsertId:    -1,
 				ScenarioErr: errors.New("error occurred"),
+				ExpectedSQL: "INSERT INTO tasks (title,description,addedOn,dueBy,status) VALUES (?,?,?,?,?)",
 			},
 		}
 	case UpdateTaskKey:
@@ -106,7 +111,8 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				Task: domain.Task{
 					Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "sample",
 				},
-				Id: "8",
+				Id:          "8",
+				ExpectedSQL: "UPDATE tasks SET title = ?, description = ?, addedOn = ?, dueBy = ?, status = ? WHERE id = ?",
 			},
 			{
 				Name: "should rollback tx for errors",
@@ -115,22 +121,31 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				},
 				Id:          "8",
 				ScenarioErr: errors.New("error occurred"),
+				ExpectedSQL: "UPDATE tasks SET title = ?, description = ?, addedOn = ?, dueBy = ?, status = ? WHERE id = ?",
 			},
 		}
 	case DeleteTaskKey:
 		return []domain.Scenario{
 			{
 				Name:         "should delete task by id",
-				RowsAffected: 1,
+				RowsAffected: true,
+				ExpectedSQL:  "DELETE FROM tasks WHERE id = ?",
+				Rows: sqlmock.NewRows(columns).
+					AddRow(8, "sample", "sample", 1, 1, "sample").
+					AddRow(88, "sample", "sample", 1, 1, "sample"),
 			},
 			{
 				Name:         "should not delete task if not present",
-				RowsAffected: 0,
+				RowsAffected: false,
+				ExpectedSQL:  "DELETE FROM tasks WHERE id = ?",
+				Rows:         sqlmock.NewRows([]string{}),
 			},
 			{
 				Name:         "should rollback tx for errors",
 				ScenarioErr:  errors.New("error occurred"),
-				RowsAffected: 0,
+				RowsAffected: false,
+				ExpectedSQL:  "DELETE FROM tasks WHERE id = ?",
+				Rows:         sqlmock.NewRows([]string{}),
 			},
 		}
 	case SearchTaskKey:
@@ -141,7 +156,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 					{Id: 8, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
 				},
 				SearchParams: map[string]string{"id": "8"},
-				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE id = 8 LIMIT 10 OFFSET 0",
+				ExpectedSQL:  "SELECT * FROM tasks WHERE id = ? LIMIT 10 OFFSET 0",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 1, 1, "done"),
 			},
@@ -152,7 +167,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 					{Id: 9, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
 				},
 				SearchParams: map[string]string{"addedOnTo": "10"},
-				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE addedOn <= 10 LIMIT 10 OFFSET 0",
+				ExpectedSQL:  "SELECT * FROM tasks WHERE addedOn <= ? LIMIT 10 OFFSET 0",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 1, 1, "done").
 					AddRow(9, "sample", "sample", 1, 1, "done"),
@@ -164,7 +179,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 					{Id: 9, AddedOn: 11, DueBy: 11, Title: "sample", Description: "sample", Status: "done"},
 				},
 				SearchParams: map[string]string{"addedOnFrom": "10"},
-				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE addedOn >= 10 LIMIT 10 OFFSET 0",
+				ExpectedSQL:  "SELECT * FROM tasks WHERE addedOn >= ? LIMIT 10 OFFSET 0",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 11, 11, "done").
 					AddRow(9, "sample", "sample", 11, 11, "done"),
@@ -176,7 +191,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 					{Id: 9, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
 				},
 				SearchParams: map[string]string{"dueByTo": "10"},
-				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE dueBy <= 10 LIMIT 10 OFFSET 0",
+				ExpectedSQL:  "SELECT * FROM tasks WHERE dueBy <= ? LIMIT 10 OFFSET 0",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 1, 1, "done").
 					AddRow(9, "sample", "sample", 1, 1, "done"),
@@ -188,7 +203,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 					{Id: 9, AddedOn: 11, DueBy: 11, Title: "sample", Description: "sample", Status: "done"},
 				},
 				SearchParams: map[string]string{"dueByFrom": "10"},
-				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE dueBy >= 10 LIMIT 10 OFFSET 0",
+				ExpectedSQL:  "SELECT * FROM tasks WHERE dueBy >= ? LIMIT 10 OFFSET 0",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 11, 11, "done").
 					AddRow(9, "sample", "sample", 11, 11, "done"),
@@ -200,7 +215,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 					{Id: 9, AddedOn: 1, DueBy: 1, Title: "sample", Description: "sample", Status: "done"},
 				},
 				SearchParams: map[string]string{"status": "done"},
-				ExpectedSQL:  "SELECT (.+) FROM tasks WHERE status = \"done\" LIMIT 10 OFFSET 0",
+				ExpectedSQL:  "SELECT * FROM tasks WHERE status = ? LIMIT 10 OFFSET 0",
 				Rows: sqlmock.NewRows(columns).
 					AddRow(8, "sample", "sample", 1, 1, "done").
 					AddRow(9, "sample", "sample", 1, 1, "done"),
@@ -209,14 +224,14 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				Name:          "should get no tasks",
 				ExpectedTasks: []domain.Task{},
 				SearchParams:  map[string]string{"status": "unresolved"},
-				ExpectedSQL:   "SELECT (.+) FROM tasks WHERE status = \"unresolved\" LIMIT 10 OFFSET 0",
+				ExpectedSQL:   "SELECT * FROM tasks WHERE status = ? LIMIT 10 OFFSET 0",
 				Rows:          sqlmock.NewRows(columns),
 			},
 			{
 				Name:          "should default page to 0 and perPage to 10 when garbage value provided",
 				ExpectedTasks: []domain.Task{},
 				SearchParams:  map[string]string{"page": "-1", "perPage": "the simpsons"},
-				ExpectedSQL:   "SELECT (.+) FROM tasks LIMIT 10 OFFSET 0",
+				ExpectedSQL:   "SELECT * FROM tasks LIMIT 10 OFFSET 0",
 				Rows:          sqlmock.NewRows(columns),
 			},
 			{
@@ -224,7 +239,7 @@ func GetRepositoryTestScenarios(action string) []domain.Scenario {
 				ExpectedTasks: []domain.Task{},
 				SearchParams:  map[string]string{"page": "0"},
 				ScenarioErr:   errors.New("error occurred"),
-				ExpectedSQL:   "SELECT (.+) FROM tasks LIMIT 10 OFFSET 0",
+				ExpectedSQL:   "SELECT * FROM tasks LIMIT 10 OFFSET 0",
 				Rows:          sqlmock.NewRows(columns),
 			},
 		}
@@ -349,13 +364,13 @@ func GetServiceTestScenarios(action string) []domain.Scenario {
 				Name:         "should successfully delete task",
 				StatusCode:   http.StatusNoContent,
 				ScenarioErr:  nil,
-				RowsAffected: 1,
+				RowsAffected: true,
 			},
 			{
 				Name:         "should throw 404 delete task if not present in database",
 				StatusCode:   http.StatusNotFound,
 				ScenarioErr:  nil,
-				RowsAffected: 0,
+				RowsAffected: false,
 			},
 			{
 				Name:        "should throw 500 in delete task for database errors",

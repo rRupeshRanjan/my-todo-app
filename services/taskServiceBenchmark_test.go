@@ -128,7 +128,7 @@ func BenchmarkDeleteTaskByIdHandler(b *testing.B) {
 	for _, scenario := range scenarios {
 		b.Run(scenario.Name, func(b *testing.B) {
 			request := httptest.NewRequest("DELETE", "http://localhost.com/task/8", nil)
-			taskRepositoryDeleteTaskMock = func(id string) (int64, error) {
+			taskRepositoryDeleteTaskMock = func(id string) (bool, error) {
 				return scenario.RowsAffected, scenario.ScenarioErr
 			}
 

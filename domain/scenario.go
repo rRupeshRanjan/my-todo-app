@@ -15,7 +15,7 @@ type Scenario struct {
 	InsertId      int64
 	StatusCode    int
 	ScenarioErr   error
-	RowsAffected  int64
+	RowsAffected  bool
 	ExpectedSQL   string
 	ExpectedTasks []Task
 }

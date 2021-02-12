@@ -2,13 +2,12 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
+	sq "github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 	"my-todo-app/config"
 	"my-todo-app/domain"
 	"strconv"
-	"strings"
 )
 
 var (
@@ -16,16 +15,11 @@ var (
 	sqlDriver    string
 	databaseName string
 	logger       *zap.Logger
+	columns      = []string{"title", "description", "addedOn", "dueBy", "status"}
 )
 
 const (
-	getByIdQuery            = "SELECT * FROM tasks WHERE id=?"
-	getAllByPaginationQuery = "SELECT * FROM tasks LIMIT ? OFFSET ?"
-	getAllQuery             = "SELECT * FROM tasks"
-	createQuery             = "INSERT INTO tasks (title, description, addedOn, dueBy, status) VALUES (?,?,?,?,?)"
-	updateQuery             = "UPDATE tasks SET title=?, description=?, addedOn=?, dueBy=?, status=? WHERE id=?"
-	deleteQuery             = "DELETE FROM tasks WHERE id=?"
-	initDbQuery             = `CREATE TABLE IF NOT EXISTS tasks (
+	initDbQuery = `CREATE TABLE IF NOT EXISTS tasks (
 						id INT PRIMARY KEY NOT NULL AUTO_INCREMENT, 
 						title TEXT NOT NULL, 
 						description TEXT NOT NULL, 
@@ -91,9 +85,13 @@ func GetTaskById(id string) ([]domain.Task, error) {
 		}
 	}()
 
-	rows, err := tx.Query(getByIdQuery, id)
-	tasks := []domain.Task{}
+	rows, err := sq.Select("*").
+		From("tasks").
+		Where(sq.Eq{"id": id}).
+		RunWith(tx).
+		Query()
 
+	tasks := []domain.Task{}
 	for err == nil && rows.Next() {
 		var task domain.Task
 		err = rows.Scan(&task.Id, &task.Title, &task.Description, &task.AddedOn, &task.DueBy, &task.Status)
@@ -121,10 +119,11 @@ func GetAllTasks(page int64, perPage int64) ([]domain.Task, error) {
 	var rows *sql.Rows
 	tasks := []domain.Task{}
 
+	query := sq.Select("*").From("tasks")
 	if page == -1 || perPage == -1 {
-		rows, err = tx.Query(getAllQuery)
+		rows, err = query.RunWith(tx).Query()
 	} else {
-		rows, err = tx.Query(getAllByPaginationQuery, perPage, page*perPage)
+		rows, err = query.Limit(uint64(perPage)).Offset(uint64(page * perPage)).RunWith(tx).Query()
 	}
 
 	for err == nil && rows.Next() {
@@ -151,7 +150,13 @@ func CreateTask(task domain.Task) (int64, error) {
 		}
 	}()
 
-	result, err := tx.Exec(createQuery, task.Title, task.Description, task.AddedOn, task.DueBy, task.Status)
+	result, err :=
+		sq.Insert("tasks").
+			Columns(columns...).
+			Values(task.Title, task.Description, task.AddedOn, task.DueBy, task.Status).
+			RunWith(tx).
+			Exec()
+
 	if err == nil && result != nil {
 		return result.LastInsertId()
 	}
@@ -172,14 +177,22 @@ func UpdateTask(task domain.Task, id string) error {
 		}
 	}()
 
-	_, err = tx.Exec(updateQuery, task.Title, task.Description, task.AddedOn, task.DueBy, task.Status, id)
+	_, err = sq.Update("tasks").
+		Set("title", task.Title).
+		Set("description", task.Description).
+		Set("addedOn", task.AddedOn).
+		Set("dueBy", task.DueBy).
+		Set("status", task.Status).
+		Where(sq.Eq{"id": id}).
+		RunWith(tx).
+		Exec()
 	return err
 }
 
-func DeleteTask(id string) (int64, error) {
+func DeleteTask(id string) (bool, error) {
 	tx, err := db.Begin()
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 	defer func() {
 		switch err {
@@ -190,12 +203,17 @@ func DeleteTask(id string) (int64, error) {
 		}
 	}()
 
-	result, err := tx.Exec(deleteQuery, id)
+	result, err :=
+		sq.Delete("*").
+			From("tasks").
+			Where(sq.Eq{"id": id}).
+			RunWith(tx).
+			Query()
 	if err == nil && result != nil {
-		return result.RowsAffected()
+		return result.Next(), nil
 	}
 
-	return 0, err
+	return false, err
 }
 
 func SearchTasks(params map[string]string) ([]domain.Task, error) {
@@ -215,9 +233,7 @@ func SearchTasks(params map[string]string) ([]domain.Task, error) {
 	var rows *sql.Rows
 	tasks := []domain.Task{}
 
-	query := getSearchQuery(params)
-	logger.Info(fmt.Sprintf("Executing query: %s", query))
-	rows, err = tx.Query(query)
+	rows, err = getSearchQuery(params).RunWith(tx).Query()
 
 	for err == nil && rows.Next() {
 		var task domain.Task
@@ -229,43 +245,28 @@ func SearchTasks(params map[string]string) ([]domain.Task, error) {
 	return tasks, err
 }
 
-func getSearchQuery(params map[string]string) string {
+func getSearchQuery(params map[string]string) sq.SelectBuilder {
+	query := sq.Select("*").From("tasks")
+
 	page := getPageNumber(params["page"])
 	perPage := getPerPage(params["perPage"])
 
-	additionalQuery := strings.Builder{}
 	for key, value := range params {
 		switch key {
-		case "id":
-			additionalQuery.WriteString(fmt.Sprintf("id = %s AND ", value))
-		case "addedOnFrom":
-			additionalQuery.WriteString(fmt.Sprintf("addedOn >= %s AND ", value))
-		case "addedOnTo":
-			additionalQuery.WriteString(fmt.Sprintf("addedOn <= %s AND ", value))
-		case "dueByFrom":
-			additionalQuery.WriteString(fmt.Sprintf("dueBy >= %s AND ", value))
-		case "dueByTo":
-			additionalQuery.WriteString(fmt.Sprintf("dueBy <= %s AND ", value))
-		case "status":
-			additionalQuery.WriteString(fmt.Sprintf("status = \"%s\" AND ", value))
+		case "id", "status":
+			query = query.Where(sq.Eq{key: value})
+		case "addedOnFrom", "dueByFrom":
+			// strip "From" from key, for correct column names
+			key = key[:len(key)-4]
+			query = query.Where(sq.GtOrEq{key: value})
+		case "addedOnTo", "dueByTo":
+			// strip "To" from key, for correct column names
+			key = key[:len(key)-2]
+			query = query.Where(sq.LtOrEq{key: value})
 		}
 	}
 
-	baseQuery := strings.Builder{}
-	baseQuery.WriteString(getAllQuery)
-
-	if len(additionalQuery.String()) > 0 {
-		baseQuery.WriteString(" WHERE ")
-		baseQuery.WriteString(additionalQuery.String())
-	}
-
-	query := baseQuery.String()
-	if len(additionalQuery.String()) > 0 {
-		query = query[:len(query)-4]
-	}
-	query += fmt.Sprintf(" LIMIT %d OFFSET %d", perPage, page*perPage)
-
-	return query
+	return query.Limit(uint64(perPage)).Offset(uint64(page * perPage))
 }
 
 func getPerPage(perPageString string) int64 {

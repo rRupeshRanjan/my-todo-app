@@ -12,7 +12,8 @@ This REST API can further be integrated with a UI (coming up) for better visuali
 3. [Viper](https://github.com/spf13/viper) v1.7.1 (for config management)
 4. [Zap](https://go.uber.org/zap) v1.16.0 (for logging)
 5. [mysql](https://github.com/go-sql-driver/mysql) v1.5.0 (for sql driver)
-6. [go-sqlmock](https://github.com/DATA-DOG/go-sqlmock) v1.5.0 (for sql tests)
+6. [squirrel](https://github.com/Masterminds/squirrel) v1.5.0 (for sql query building)
+7. [go-sqlmock](https://github.com/DATA-DOG/go-sqlmock) v1.5.0 (for sql tests)
 
 #### Project Structure
 - config

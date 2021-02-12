@@ -20,7 +20,7 @@ var (
 	taskRepositoryGetAllTasksMock func(page int64, perPage int64) ([]domain.Task, error)
 	taskRepositoryCreateTaskMock  func(task domain.Task) (int64, error)
 	taskRepositoryUpdateTaskMock  func(task domain.Task, id string) error
-	taskRepositoryDeleteTaskMock  func(id string) (int64, error)
+	taskRepositoryDeleteTaskMock  func(id string) (bool, error)
 	taskRepositorySearchTasksMock func(params map[string]string) ([]domain.Task, error)
 
 	testApp = fiber.New()
@@ -42,7 +42,7 @@ func (t taskRepositoryMock) updateTask(task domain.Task, id string) error {
 	return taskRepositoryUpdateTaskMock(task, id)
 }
 
-func (t taskRepositoryMock) deleteTask(id string) (int64, error) {
+func (t taskRepositoryMock) deleteTask(id string) (bool, error) {
 	return taskRepositoryDeleteTaskMock(id)
 }
 
@@ -157,7 +157,7 @@ func TestDeleteTaskByIdHandler(t *testing.T) {
 
 	request := httptest.NewRequest("DELETE", "http://localhost.com/task/8", nil)
 	for _, scenario := range scenarios {
-		taskRepositoryDeleteTaskMock = func(id string) (int64, error) {
+		taskRepositoryDeleteTaskMock = func(id string) (bool, error) {
 			return scenario.RowsAffected, scenario.ScenarioErr
 		}
 

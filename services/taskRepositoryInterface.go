@@ -12,7 +12,7 @@ type TaskRepositoryInterface interface {
 	getAllTasks(page int64, perPage int64) ([]domain.Task, error)
 	createTask(task domain.Task) (int64, error)
 	updateTask(task domain.Task, id string) error
-	deleteTask(id string) (int64, error)
+	deleteTask(id string) (bool, error)
 	searchTasks(params map[string]string) ([]domain.Task, error)
 }
 
@@ -32,7 +32,7 @@ func (t TaskRepository) updateTask(task domain.Task, id string) error {
 	return repository.UpdateTask(task, id)
 }
 
-func (t TaskRepository) deleteTask(id string) (int64, error) {
+func (t TaskRepository) deleteTask(id string) (bool, error) {
 	return repository.DeleteTask(id)
 }
 

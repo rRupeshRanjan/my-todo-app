@@ -91,12 +91,12 @@ func DeleteTaskByIdHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
 	rowsAffected, err := taskRepository.deleteTask(id)
 	if err == nil {
-		if rowsAffected == 0 {
-			logger.Info(fmt.Sprintf("No task found with id: %s for deletion", id))
-			return c.SendStatus(http.StatusNotFound)
+		if rowsAffected {
+			logger.Info(fmt.Sprintf("Deleted task with id: %s", id))
+			return c.SendStatus(http.StatusNoContent)
 		}
-		logger.Info(fmt.Sprintf("Deleted task with id: %s", id))
-		return c.SendStatus(http.StatusNoContent)
+		logger.Info(fmt.Sprintf("No task found with id: %s for deletion", id))
+		return c.SendStatus(http.StatusNotFound)
 	}
 
 	logger.Error(fmt.Sprintf("Error deleting task with id=%s : %s", id, err))

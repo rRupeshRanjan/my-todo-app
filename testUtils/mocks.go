@@ -37,8 +37,8 @@ func GetRepositoryMocks(action string, mock sqlmock.Sqlmock, expectedSQL string,
 			WillReturnError(scenario.ScenarioErr)
 
 	case DeleteTaskKey:
-		mock.ExpectExec(expectedSQL).WithArgs(id).
-			WillReturnResult(sqlmock.NewResult(-1, scenario.RowsAffected)).
+		mock.ExpectQuery(expectedSQL).WithArgs(id).
+			WillReturnRows(scenario.Rows).
 			WillReturnError(scenario.ScenarioErr)
 	}
 

@@ -15,7 +15,7 @@ var (
 )
 
 func InitialSetup(t *testing.T) {
-	mockDb, mock, err = sqlmock.New()
+	mockDb, mock, err = sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Errorf("Error opening stub database connection: %s", err)
 	}
@@ -25,12 +25,11 @@ func InitialSetup(t *testing.T) {
 func TestGetTaskById(t *testing.T) {
 	InitialSetup(t)
 	scenarios := testUtils.GetRepositoryTestScenarios(testUtils.GetTaskByIdKey)
-	expectedSQL := "SELECT (.+) FROM tasks WHERE id=\\?"
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			id := scenario.Id
-			testUtils.GetRepositoryMocks(testUtils.GetTaskByIdKey, mock, expectedSQL, id, scenario)
+			testUtils.GetRepositoryMocks(testUtils.GetTaskByIdKey, mock, scenario.ExpectedSQL, id, scenario)
 
 			tasks, err := GetTaskById(id)
 			if err != scenario.ScenarioErr {
@@ -69,11 +68,10 @@ func TestGetAllTasks(t *testing.T) {
 func TestCreateTask(t *testing.T) {
 	InitialSetup(t)
 	scenarios := testUtils.GetRepositoryTestScenarios(testUtils.CreateTaskKey)
-	expectedSQL := "INSERT INTO tasks \\(title, description, addedOn, dueBy, status\\) VALUES \\(\\?,\\?,\\?,\\?,\\?\\)"
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			testUtils.GetRepositoryMocks(testUtils.CreateTaskKey, mock, expectedSQL, "", scenario)
+			testUtils.GetRepositoryMocks(testUtils.CreateTaskKey, mock, scenario.ExpectedSQL, "", scenario)
 
 			insertId, err := CreateTask(scenario.Task)
 			if err != scenario.ScenarioErr {
@@ -91,11 +89,10 @@ func TestCreateTask(t *testing.T) {
 func TestUpdateTask(t *testing.T) {
 	InitialSetup(t)
 	scenarios := testUtils.GetRepositoryTestScenarios(testUtils.UpdateTaskKey)
-	expectedSQL := "UPDATE tasks SET title=\\?, description=\\?, addedOn=\\?, dueBy=\\?, status=\\? WHERE id=\\?"
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			testUtils.GetRepositoryMocks(testUtils.UpdateTaskKey, mock, expectedSQL, scenario.Id, scenario)
+			testUtils.GetRepositoryMocks(testUtils.UpdateTaskKey, mock, scenario.ExpectedSQL, scenario.Id, scenario)
 
 			err := UpdateTask(scenario.Task, "8")
 			if err != scenario.ScenarioErr {
@@ -111,12 +108,11 @@ func TestUpdateTask(t *testing.T) {
 func TestDeleteTask(t *testing.T) {
 	InitialSetup(t)
 	scenarios := testUtils.GetRepositoryTestScenarios(testUtils.DeleteTaskKey)
-	expectedSQL := "DELETE FROM tasks WHERE id=\\?"
 	id := "8"
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			testUtils.GetRepositoryMocks(testUtils.DeleteTaskKey, mock, expectedSQL, id, scenario)
+			testUtils.GetRepositoryMocks(testUtils.DeleteTaskKey, mock, scenario.ExpectedSQL, id, scenario)
 
 			rowsAffected, err := DeleteTask(id)
 			if err != scenario.ScenarioErr {
@@ -124,7 +120,7 @@ func TestDeleteTask(t *testing.T) {
 			} else if mock.ExpectationsWereMet() != nil {
 				t.Errorf("Expectations were not met: %s", err)
 			} else if rowsAffected != scenario.RowsAffected {
-				t.Errorf("Failure:: Expected %d row to be affected", scenario.RowsAffected)
+				t.Errorf("Failure:: Expected %v row to be affected", scenario.RowsAffected)
 			}
 		})
 	}

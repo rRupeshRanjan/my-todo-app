@@ -34,9 +34,6 @@ This REST API can further be integrated with a UI (coming up) for better visuali
 - main.go
 - config.yaml
 
-#### TODO
-1. Pass config file path from command line instead of hard-coding
-
 #### Testing mechanisms:
 1. **Run all tests**: _go test ./..._
 2. **Run all tests with % coverage**: _go test -covermode count ./..._

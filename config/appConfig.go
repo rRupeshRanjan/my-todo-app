@@ -14,9 +14,9 @@ var (
 	Port           string
 	AppLogger      *zap.Logger
 	SqlDriver      string
-	DatabaseName   string
+	DataSourceName string
 	FiberLogFormat string
-	LogFile        *os.File
+	AccessLogFile  *os.File
 )
 
 func init() {
@@ -33,22 +33,32 @@ func init() {
 	if err == nil {
 		Port = domain.PortSemicolon + viper.GetString(domain.AppServerPort)
 		SqlDriver = viper.GetString(domain.SqlDriver)
-		DatabaseName = viper.GetString(domain.SqlDatabaseName)
-
+		DataSourceName = viper.GetString(domain.SqlDatabaseName)
 		FiberLogFormat = viper.GetString(domain.FiberLogFormat)
-		LogFile, err = os.OpenFile(viper.GetString(domain.AppLogLocation), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-
-		if err != nil {
-			log.Panic(fmt.Sprintf("Error opening log file: %s with error: %s",
-				viper.GetString(domain.AppLogLocation), err.Error()))
-		}
-
-		core := zapcore.NewCore(
-			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-			zapcore.AddSync(LogFile),
-			zap.InfoLevel)
-		AppLogger = zap.New(core)
+		AppLogger = getLogger(domain.AppLogLocation)
+		AccessLogFile = getFile(domain.AppAccessLogLocation)
 	} else {
 		log.Panic(fmt.Sprintf("Unable to read config, program will exit now. Error: %s", err.Error()))
 	}
+}
+
+func getLogger(filepath string) *zap.Logger {
+	file := getFile(filepath)
+	return zap.New(
+		zapcore.NewCore(
+			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+			zapcore.AddSync(file),
+			zap.InfoLevel,
+		),
+	)
+}
+
+func getFile(filepath string) *os.File {
+	AccessLogFile, err := os.OpenFile(viper.GetString(filepath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Panic(fmt.Sprintf("Error opening log file: %s with error: %s",
+			viper.GetString(filepath), err.Error()))
+	}
+
+	return AccessLogFile
 }

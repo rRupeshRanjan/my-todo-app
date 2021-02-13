@@ -1,9 +1,10 @@
 package domain
 
 const (
-	AppServerPort  = "app.server.port"
-	AppLogLocation = "app.log.location"
-	FiberLogFormat = "fiber.log.format"
+	AppServerPort        = "app.server.port"
+	AppLogLocation       = "app.log.location"
+	AppAccessLogLocation = "app.access.log.location"
+	FiberLogFormat       = "fiber.log.format"
 
 	SqlDriver       = "sql.driver"
 	SqlDatabaseName = "sql.database.name"

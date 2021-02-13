@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/simukti/sqldb-logger"
+	"github.com/simukti/sqldb-logger/logadapter/zapadapter"
 	"go.uber.org/zap"
 	"my-todo-app/config"
 	"my-todo-app/domain"
@@ -11,11 +13,10 @@ import (
 )
 
 var (
-	db           *sql.DB
-	sqlDriver    string
-	databaseName string
-	logger       *zap.Logger
-	columns      = []string{"title", "description", "addedOn", "dueBy", "status"}
+	db        *sql.DB
+	sqlDriver string
+	logger    *zap.Logger
+	columns   = []string{"title", "description", "addedOn", "dueBy", "status"}
 )
 
 const (
@@ -30,20 +31,20 @@ const (
 
 func init() {
 	sqlDriver = config.SqlDriver
-	databaseName = config.DatabaseName
 	logger = config.AppLogger
 
-	database := connectDatabase()
+	database := connectDatabase(config.DataSourceName)
 	setDb(database)
 	initializeTable()
 }
 
-func connectDatabase() *sql.DB {
-	database, err := sql.Open(sqlDriver, databaseName)
+func connectDatabase(dsn string) *sql.DB {
+	database, err := sql.Open(sqlDriver, dsn)
 	if err != nil {
 		panic(err)
 	}
 
+	database = sqldblogger.OpenDriver(dsn, database.Driver(), zapadapter.New(logger))
 	return database
 }
 

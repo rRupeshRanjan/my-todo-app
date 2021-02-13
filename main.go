@@ -11,9 +11,14 @@ import (
 
 func main() {
 	app := fiber.New()
+	accessLogFile := config.AccessLogFile
+
+	defer app.Shutdown()
+	defer accessLogFile.Close()
+
 	app.Use(logger.New(logger.Config{
 		Format: config.FiberLogFormat,
-		Output: config.LogFile,
+		Output: accessLogFile,
 	}))
 
 	app.Use(cors.New(cors.Config{

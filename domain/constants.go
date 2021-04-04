@@ -5,11 +5,11 @@ const (
 	AppLogLocation       = "app.log.location"
 	AppAccessLogLocation = "app.access.log.location"
 	FiberLogFormat       = "fiber.log.format"
-
-	SqlDriver       = "sql.driver"
-	SqlDatabaseName = "sql.database.name"
-
-	PortSemicolon = ":"
+	FiberLogTimeFormat   = "fiber.log.timeFormat"
+	CorsAllowedOrigin    = "app.cors.allowOrigins"
+	CorsAllowedHeaders   = "app.cors.allowHeaders"
+	SqlDriver            = "sql.driver"
+	SqlDatabaseName      = "sql.database.name"
 )
 
 var SupportedSearchParams = map[string]string{

@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"log"
 	"my-todo-app/config"
 	"my-todo-app/services"
@@ -11,27 +9,23 @@ import (
 
 func main() {
 	app := fiber.New()
-	accessLogFile := config.AccessLogFile
 
-	defer app.Shutdown()
-	defer accessLogFile.Close()
+	defer func() { _ = app.Shutdown() }()
 
-	app.Use(logger.New(logger.Config{
-		Format: config.FiberLogFormat,
-		Output: accessLogFile,
-	}))
-
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000",
-		AllowHeaders: "Origin, Content-Type, Accept",
-	}))
-
+	configureApp(app)
 	registerRoutes(app)
 
 	err := app.Listen(config.Port)
 	if err != nil {
 		log.Panic("Error starting server with error: ", err)
 	}
+}
+
+func configureApp(app *fiber.App) {
+	app.Use(
+		config.GetFiberLogger(),
+		config.GetCors(),
+	)
 }
 
 func registerRoutes(app *fiber.App) {

@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	taskRepository TaskRepositoryInterface
+	taskRepository ITaskRepository
 	logger         *zap.Logger
 )
 

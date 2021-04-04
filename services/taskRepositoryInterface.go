@@ -7,7 +7,7 @@ import (
 
 type TaskRepository struct{}
 
-type TaskRepositoryInterface interface {
+type ITaskRepository interface {
 	getTaskById(id string) ([]domain.Task, error)
 	getAllTasks(page int64, perPage int64) ([]domain.Task, error)
 	createTask(task domain.Task) (int64, error)

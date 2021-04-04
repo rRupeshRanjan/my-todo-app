@@ -1,7 +1,11 @@
 sql.driver: "mysql"
 sql.database.name: "root:password@/todo_app"
 
-app.server.port: "8080"
+app.server.port: ":8080" # include : in port
 app.access.log.location: "access.log"
 app.log.location: "application.log"
 fiber.log.format: "[${time}] ${ip} ${method} ${url} - ${status} ${latency} ${bytesSent}\n"
+fiber.log.timeFormat: "2006-01-02 15:04:05 -07:00"
+
+app.cors.allowOrigins: "*"
+app.cors.allowHeaders: "Origin, Content-Type, Accept"

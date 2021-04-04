@@ -60,7 +60,7 @@ func CreateTaskHandler(c *fiber.Ctx) error {
 
 	createdId, err := taskRepository.createTask(task)
 	if err == nil {
-		task.Id = createdId
+		task.SetId(createdId)
 		return c.JSON(task)
 	}
 
@@ -73,7 +73,7 @@ func UpdateTaskByIdHandler(c *fiber.Ctx) error {
 
 	var task domain.Task
 	err := json.Unmarshal(c.Body(), &task)
-	if err != nil || strconv.FormatInt(task.Id, 10) != id {
+	if err != nil || strconv.FormatInt(task.GetId(), 10) != id {
 		logger.Error("Bad data passed for update, or id in body is different from id in URL")
 		return c.SendStatus(http.StatusBadRequest)
 	}

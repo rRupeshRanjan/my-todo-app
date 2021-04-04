@@ -95,7 +95,7 @@ func GetTaskById(id string) ([]domain.Task, error) {
 	tasks := []domain.Task{}
 	for err == nil && rows.Next() {
 		var task domain.Task
-		err = rows.Scan(&task.Id, &task.Title, &task.Description, &task.AddedOn, &task.DueBy, &task.Status)
+		task, err = scanRow(rows)
 		if err == nil {
 			tasks = append(tasks, task)
 		}
@@ -129,7 +129,7 @@ func GetAllTasks(page int64, perPage int64) ([]domain.Task, error) {
 
 	for err == nil && rows.Next() {
 		var task domain.Task
-		err = rows.Scan(&task.Id, &task.Title, &task.Description, &task.AddedOn, &task.DueBy, &task.Status)
+		task, err = scanRow(rows)
 		if err == nil {
 			tasks = append(tasks, task)
 		}
@@ -154,7 +154,7 @@ func CreateTask(task domain.Task) (int64, error) {
 	result, err :=
 		sq.Insert("tasks").
 			Columns(columns...).
-			Values(task.Title, task.Description, task.AddedOn, task.DueBy, task.Status).
+			Values(task.GetTitle(), task.GetDescription(), task.GetAddedOn(), task.GetDueBy(), task.GetStatus()).
 			RunWith(tx).
 			Exec()
 
@@ -179,11 +179,11 @@ func UpdateTask(task domain.Task, id string) error {
 	}()
 
 	_, err = sq.Update("tasks").
-		Set("title", task.Title).
-		Set("description", task.Description).
-		Set("addedOn", task.AddedOn).
-		Set("dueBy", task.DueBy).
-		Set("status", task.Status).
+		Set("title", task.GetTitle()).
+		Set("description", task.GetDescription()).
+		Set("addedOn", task.GetAddedOn()).
+		Set("dueBy", task.GetDueBy()).
+		Set("status", task.GetStatus()).
 		Where(sq.Eq{"id": id}).
 		RunWith(tx).
 		Exec()
@@ -238,7 +238,7 @@ func SearchTasks(params map[string]string) ([]domain.Task, error) {
 
 	for err == nil && rows.Next() {
 		var task domain.Task
-		err = rows.Scan(&task.Id, &task.Title, &task.Description, &task.AddedOn, &task.DueBy, &task.Status)
+		task, err = scanRow(rows)
 		if err == nil {
 			tasks = append(tasks, task)
 		}
@@ -268,6 +268,26 @@ func getSearchQuery(params map[string]string) sq.SelectBuilder {
 	}
 
 	return query.Limit(uint64(perPage)).Offset(uint64(page * perPage))
+}
+
+func scanRow(rows *sql.Rows) (domain.Task, error) {
+	var task domain.Task
+	var id, addedOn, dueBy int64
+	var title, description, status string
+
+	err := rows.Scan(&id, &title, &description, &addedOn, &dueBy, &status)
+	if err == nil {
+		task = domain.Task{
+			Id:          id,
+			AddedOn:     addedOn,
+			DueBy:       dueBy,
+			Title:       title,
+			Description: description,
+			Status:      status,
+		}
+	}
+
+	return task, err
 }
 
 func getPerPage(perPageString string) int64 {

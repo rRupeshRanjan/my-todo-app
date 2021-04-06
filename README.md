@@ -35,5 +35,7 @@ This REST API can further be integrated with a UI (coming up) for better visuali
 - config.yaml
 
 #### Testing mechanisms:
-1. **Run all tests**: _go test ./..._
-2. **Run all tests
+1. **Run all tests**: _go test -v ./..._
+2. **Run benchmark tests**: _go test -bench ._
+3. **Run benchmark with memory profiling**: _go test -bench . -benchmem_
+4. **Run specific tests**: _go test -run TestCaseName_

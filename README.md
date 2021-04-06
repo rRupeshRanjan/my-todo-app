@@ -1,4 +1,4 @@
-# Building a TO-DO List app
+# Building a TO-DO List app ![Build status](https://github.com/rRupeshRanjan/my-todo-app/actions/workflows/go.yml/badge.svg)
 
 In this project, we aim to build a set of REST APIs, where we can track our todo lists. As a user, we would have access to create,
 update and delete tasks to list, as well as we should be able to see all the tasks in list. A task will have due
@@ -36,6 +36,4 @@ This REST API can further be integrated with a UI (coming up) for better visuali
 
 #### Testing mechanisms:
 1. **Run all tests**: _go test ./..._
-2. **Run all tests with % coverage**: _go test -covermode count ./..._
-3. **Run tests with coverage output to txt file**: _go test -coverprofile cover.txt ./..._
-4. **Convert txt file to html**: _go tool cover -html cover.txt_
+2. **Run all tests
